@@ -3,7 +3,7 @@
 exit_flg = False
 remain_vote_repeat = 0
 
-MAX_VOTE_REPEAT = int(os.getenv(MAX_VOTE))
+MAX_VOTE_REPEAT = int(os.getenv("MAX_VOTE"))
 
 @bot.event
 async def on_raw_reaction_add(payload):
@@ -18,27 +18,31 @@ async def on_raw_reaction_add(payload):
 			embed = message.embeds[0]
 			if payload.emoji.name == '✅' and embed.title.startswith("会議を始めてください"):
 				# to 処刑
-				remain_vote_repeat = MAX_VOTE_REPEAT
-
+                remain_vote_repeat = MAX_VOTE_REPEAT
+                
 				...
 				
             elif payload.emoji.name == '✅' and embed.title.startswith("投票先が決定しました"):
                 await message.remove_reaction(payload.emoji, member)
                 pre_executed_ids = check_vote_max()
 				vote_dsc = get_vote_from_ids()
-                if len(pre_executed_ids) >= 2 and fin_vote != 0:
+                if len(pre_executed_ids) >= 2 and remain_vote_repeat != 0:
 					for pre_executed_id in pre_executed_ids:
 						pre_exer = await bot.fetch_user(pre_executed_id)
 						await pre_exer.send("処刑対象の候補になりました\n弁明の準備をしてください")
-					embed.title = "最多得票者が複数となりました"
+                        await asyncio.sleep(0.3)
+                    embed.title = "最多得票者が複数となりました"
 					embed.description = f"投票結果\n{vote_dsc}\n \n弁明の時間に移ります"
 					embed.set_footer(text="✅を押して進行してください")
 					await message.edit(embed=embed)
 					await message.add_reaction('✅')
 				else:
-					if len(pre_executed_ids) >= 2 and fin_vote == 0:
+					if len(pre_executed_ids) >= 2 and remain_vote_repeat == 0:
 						embed.title = "最多得票者が同率のためランダムで選択されます"
+                        embed.set_footer(text="しばらくお待ちください")
+                        await message.edit(embed=embed)
 						random.shuffle(pre_executed_ids)
+                        await asyncio.sleep(3)
                     executed_id = pre_executed_ids[0]
                     update_status(executed_id)
                     exer = await bot.fetch_user(executed_id)
@@ -51,6 +55,7 @@ async def on_raw_reaction_add(payload):
                     await message.add_reaction('✅')
             elif payload.emoji.name == '✅' and embed.title.startswith("最多得票者が"):
                 await message.remove_reaction(payload.emoji, member)
+                remain_vote_repeat -= 1
 				await persuasion_tasks(message)
 			elif payload.emoji.name == '✅' and embed.title.startswith("処刑対象が決定しました"):
                 await message.remove_reaction(payload.emoji, member)
@@ -63,6 +68,7 @@ async def on_raw_reaction_add(payload):
                 await message.edit(embed=embed)
 			elif payload.emoji.name == '✅' and embed.title.startswith("弁明"):
 	            await message.remove_reaction(payload.emoji, member)
+                count = 
 				embed.title = "決選投票を始めます"
 				embed.description = "LOADING" + "□"*count
                 embed.set_footer(text="しばらくお待ちください")
@@ -77,9 +83,31 @@ async def on_raw_reaction_add(payload):
 		if payload.emoji.name == '➡️' and message.content.startswith("弁明をスキップする場合は"):
 			await message.delete()
 			exit_flg = True
-			await user.send("あなたの弁明がスキップされます")
+			msg = await user.send("あなたの弁明がスキップされます")
+            await mute_select(payload.user_id)
+            await asyncio.sleep(5)
+            await meg.delete()
+        elif payload.emoji.name == '➡️' and message.content.startswith("遺言をスキップする場合は"):
+			await message.delete()
+			exit_flg = True
+			msg = await user.send("あなたの遺言がスキップされます")
+            await mute_select(payload.user_id)
+            await asyncio.sleep(5)
+            await meg.delete()
+        elif payload.emoji.name == '' and message.content.startswith("投票してください"):
+            ...
+            count = 
+            embed.title = "投票先が決定しました"
+            embed.description = "LOADING" + "■"*count
+            embed.set_footer(text="しばらくお待ちください")
+            await message.edit(embed=embed)
 
 
+
+async def fin_vote_operates()
+    ...
+    for user in 
+        await user.send("投票してください")
         ...
 
 async def persuasion_operates(message):
@@ -101,7 +129,7 @@ async def persuasion_operates(message):
 		await smsg.add_reaction('➡️')
 		await asyncio.sleep(1)
 		if exit_flg:
-			await persuasion_skip(pre_executed_id, persuader_name, message, meg)
+			await persuasion_skip(persuader_name, message, meg)
 			break
 		await unmute_select(pre_executed_id)
 		embed.description = f"{persuader_name}による弁明です"
@@ -109,62 +137,62 @@ async def persuasion_operates(message):
 		await message.edit(embed=embed)
 		await asyncio.sleep(5)
 		if exit_flg:
-			await persuasion_skip(pre_executed_id, persuader_name, message, meg)
+			await persuasion_skip(persuader_name, message, meg)
 			break
 		await asyncio.sleep(5)
 		if exit_flg:
-			await persuasion_skip(pre_executed_id, persuader_name, message, meg)
+			await persuasion_skip(persuader_name, message, meg)
 			break
 		embed.set_footer(text= "■"+"□"*5+"残り時間は50秒です")
 		await message.edit(embed=embed)
 		await asyncio.sleep(5)
 		if exit_flg:
-			await persuasion_skip(pre_executed_id, persuader_name, message, meg)
+			await persuasion_skip(persuader_name, message, meg)
 			break
 		await asyncio.sleep(5)
 		if exit_flg:
-			await persuasion_skip(pre_executed_id, persuader_name, message, meg)
+			await persuasion_skip(persuader_name, message, meg)
 			break
 		embed.set_footer(text= "■"*2+"□"*4+"残り時間は40秒です")
 		await message.edit(embed=embed)
 		await asyncio.sleep(5)
 		if exit_flg:
-			await persuasion_skip(pre_executed_id, persuader_name, message, meg)
+			await persuasion_skip(persuader_name, message, meg)
 			break
 		await asyncio.sleep(5)
 		if exit_flg:
-			await persuasion_skip(pre_executed_id, persuader_name, message, meg)
+			await persuasion_skip(persuader_name, message, meg)
 			break
 		await meg.delete()
 		embed.set_footer(text= "■"*3+"□"*3+"残り時間は30秒です")
 		await message.edit(embed=embed)
 		await asyncio.sleep(5)
 		if exit_flg:
-			await persuasion_skip(pre_executed_id, persuader_name, message, meg)
+			await persuasion_skip(persuader_name, message)
 			break
 		await asyncio.sleep(5)
 		if exit_flg:
-			await persuasion_skip(pre_executed_id, persuader_name, message, meg)
+			await persuasion_skip(persuader_name, message)
 			break
 		embed.set_footer(text= "■"*4+"□"*2+"残り時間は20秒です")
 		await message.edit(embed=embed)
 		await asyncio.sleep(5)
 		if exit_flg:
-			await persuasion_skip(pre_executed_id, persuader_name, message, meg)
+			await persuasion_skip(persuader_name, message)
 			break
 		await asyncio.sleep(5)
 		if exit_flg:
-			await persuasion_skip(pre_executed_id, persuader_name, message, meg)
+			await persuasion_skip(persuader_name, message)
 			break
 		embed.set_footer(text= "■"*5+"□"*1+"残り時間は10秒です")
 		await message.edit(embed=embed)
 		await asyncio.sleep(5)
 		if exit_flg:
-			await persuasion_skip(pre_executed_id, persuader_name, message, meg)
+			await persuasion_skip(persuader_name, message)
 			break
 		await asyncio.sleep(5)
 		if exit_flg:
-			await persuasion_skip(pre_executed_id, persuader_name, message, meg)
+			await persuasion_skip(persuader_name, message)
 			break
 		embed.set_footer(text= "■"*6+"残り時間は0秒です")
 		await message.edit(embed=embed)
@@ -183,8 +211,7 @@ async def persuasion_operates(message):
 	await clean_persuasion_dm()
 	...
 
-async def persuasion_skip(pre_executed_id, persuader_name, message, meg):
-	await mute_select(pre_executed_id)
+async def persuasion_skip(persuader_name, message, meg = None):
 	if msg:
 		await meg.delete()
 	embed.description = f"{persuader_name}による弁明がスキップされました"
