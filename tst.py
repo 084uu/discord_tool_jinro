@@ -6,9 +6,12 @@ async def on_raw_reaction_add(payload):
     message = await channel.fetch_message(payload.message_id)
     user = await bot.fetch_user(payload.user_id)
     if isinstance(channel, discord.TextChannel):
+        guild = await bot.fetch_guild(GUILD_ID)
+        member = guild.get_member(payload.user_id)
         if message.embeds[0]:
             embed = message.embeds[0]
             if payload.emoji.name == '✅' and embed.title.startswith("投票先が決定しました"):
+                await message.remove_reaction(payload.emoji, member)
                 executed_ids = check_vote_max()
                 if len(executed_ids) >= 2:
                     vote_dsc = get_vote_from_ids(target_ids)
@@ -29,20 +32,27 @@ async def on_raw_reaction_add(payload):
                     await message.edit(embed=embed)
                     await message.add_reaction('✅')
             elif payload.emoji.name == '✅' and embed.title.startswith("決戦投票へ移ります"):
+                await message.remove_reaction(payload.emoji, member)
+                executed_ids = check_vote_max()
             elif payload.emoji.name == '✅' and embed.title.startswith("処刑対象が決定しました"):
-                embed.description = f"{exer_name}が処刑されることになりました\n遺言の時間に移ります"
+                await message.remove_reaction(payload.emoji, member)
+                will_dsc = embed.description
+                will_dsc = will_dsc.split("が処刑され")[0]
+                embed.description = f"{will_dsc}の遺言です"
                 embed.set_footer(text="遺言時間は1分です\nまもなく始まります")
                 await message.edit(embed=embed)
-                await asyncio.sleep(2)
                 await will_task()
-                
+            
+            
+            ...
     
     elif isinstance(channel, discord.DMChannel):
 
+        ...
         
-        
-
 async def will_operates()
     executed_id = get_exe_id_sham()
 
+    ...
 
+await asyncio.sleep(2)
