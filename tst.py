@@ -53,7 +53,46 @@ async def on_raw_reaction_add(payload):
     elif isinstance(channel, discord.DMChannel):
 
         ...
-        
+
+async def persuasion_operates()
+	embed.title = "弁明の時間です"
+	embed.description = ""
+	embed.set_footer(text="しばらくお待ちください")
+	await message.edit(embed=embed)
+	pre_executed_ids = check_vote_max()
+	random.shuffle(pre_executed_ids)
+	for pre_executed_id in pre_executed_ids:
+		persuader = await bot.fetch_user(pre_executed_id)
+		persuader_name = get_name_by_id(pre_executed_id)
+		msg = await persuader.send("あなたの弁明の時間が始まります\nまもなくミュートが外れます")
+		await asyncio.sleep(2)
+		await unmute_select(pre_executed_id)
+		embed.description = f"{persuader_name}による弁明です"
+		embed.set_footer(text= "□"*6+"残り時間は1分です")
+		await message.edit(embed=embed)
+		await asyncio.sleep(10)
+		embed.set_footer(text= "■"+"□"*5+"残り時間は50秒です")
+		await message.edit(embed=embed)
+		await asyncio.sleep(10)
+		embed.set_footer(text= "■"*2+"□"*4+"残り時間は40秒です")
+		await message.edit(embed=embed)
+		await asyncio.sleep(10)
+		await meg.delete()
+		embed.set_footer(text= "■"*3+"□"*3+"残り時間は30秒です")
+		await message.edit(embed=embed)
+		await asyncio.sleep(10)
+		embed.set_footer(text= "■"*4+"□"*2+"残り時間は20秒です")
+		await message.edit(embed=embed)
+		await asyncio.sleep(10)
+		embed.set_footer(text= "■"*5+"□"*1+"残り時間は10秒です")
+		await message.edit(embed=embed)
+		await asyncio.sleep(10)
+		embed.set_footer(text= "■"*6+"残り時間は0秒です")
+		await message.edit(embed=embed)
+		
+	...
+
+
 async def will_operates()
 	will_name = embed.description.split("が処刑され")[0]
 	embed.title = "遺言の時間です"
