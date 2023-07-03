@@ -11,14 +11,14 @@ async def on_raw_reaction_add(payload):
     message = await channel.fetch_message(payload.message_id)
     user = await bot.fetch_user(payload.user_id)
     if isinstance(channel, discord.TextChannel):
-		global remain_vote_repeat
+        global remain_vote_repeat
         guild = await bot.fetch_guild(GUILD_ID)
         member = guild.get_member(payload.user_id)
         if message.embeds[0]:
-			embed = message.embeds[0]
+            embed = message.embeds[0]
             if payload.emoji.name == '✅'
-				if embed.title.startswith("会議を始めてください"):
-    				# to 処刑
+                if embed.title.startswith("会議を始めてください"):
+                    # to 処刑
                     remain_vote_repeat = MAX_VOTE_REPEAT
                     
     				...
