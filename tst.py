@@ -17,7 +17,7 @@ async def on_raw_reaction_add(payload):
         if message.embeds[0]:
 			embed = message.embeds[0]
             if payload.emoji.name == '✅'
-		if embed.title.startswith("会議を始めてください"):
+				if embed.title.startswith("会議を始めてください"):
     				# to 処刑
                     remain_vote_repeat = MAX_VOTE_REPEAT
                     
@@ -67,7 +67,7 @@ async def on_raw_reaction_add(payload):
     				embed.description = "夜の行動を選択中です"
                     embed.set_footer(text="しばらくお待ちください")
                     await message.edit(embed=embed)
-    			elif embed.title.startswith("弁明"):
+				elif embed.title.startswith("弁明"):
     	            await message.remove_reaction(payload.emoji, member)
                     count = 
     				embed.title = "決選投票を始めます"
