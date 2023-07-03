@@ -16,64 +16,65 @@ async def on_raw_reaction_add(payload):
         member = guild.get_member(payload.user_id)
         if message.embeds[0]:
 			embed = message.embeds[0]
-			if payload.emoji.name == '✅' and embed.title.startswith("会議を始めてください"):
-				# to 処刑
-                remain_vote_repeat = MAX_VOTE_REPEAT
-                
-				...
-				
-            elif payload.emoji.name == '✅' and embed.title.startswith("投票先が決定しました"):
-                await message.remove_reaction(payload.emoji, member)
-                pre_executed_ids = check_vote_max()
-				vote_dsc = get_vote_from_ids()
-                if len(pre_executed_ids) >= 2 and remain_vote_repeat != 0:
-					for pre_executed_id in pre_executed_ids:
-						pre_exer = await bot.fetch_user(pre_executed_id)
-						await pre_exer.send("処刑対象の候補になりました\n弁明の準備をしてください")
-                        await asyncio.sleep(0.3)
-                    embed.title = "最多得票者が複数となりました"
-					embed.description = f"投票結果\n{vote_dsc}\n \n弁明の時間に移ります"
-					embed.set_footer(text="✅を押して進行してください")
-					await message.edit(embed=embed)
-					await message.add_reaction('✅')
-				else:
-					if len(pre_executed_ids) >= 2 and remain_vote_repeat == 0:
-						embed.title = "最多得票者が同率のためランダムで選択されます"
-                        embed.set_footer(text="しばらくお待ちください")
+            if payload.emoji.name == '✅'
+    			if embed.title.startswith("会議を始めてください"):
+    				# to 処刑
+                    remain_vote_repeat = MAX_VOTE_REPEAT
+                    
+    				...
+    				
+                elif embed.title.startswith("投票先が決定しました"):
+                    await message.remove_reaction(payload.emoji, member)
+                    pre_executed_ids = check_vote_max()
+    				vote_dsc = get_vote_from_ids()
+                    if len(pre_executed_ids) >= 2 and remain_vote_repeat != 0:
+    					for pre_executed_id in pre_executed_ids:
+    						pre_exer = await bot.fetch_user(pre_executed_id)
+    						await pre_exer.send("処刑対象の候補になりました\n弁明の準備をしてください")
+                            await asyncio.sleep(0.3)
+                        embed.title = "最多得票者が複数となりました"
+    					embed.description = f"投票結果\n{vote_dsc}\n \n弁明の時間に移ります"
+    					embed.set_footer(text="✅を押して進行してください")
+    					await message.edit(embed=embed)
+    					await message.add_reaction('✅')
+    				else:
+    					if len(pre_executed_ids) >= 2 and remain_vote_repeat == 0:
+    						embed.title = "最多得票者が同率のためランダムで選択されます"
+                            embed.set_footer(text="しばらくお待ちください")
+                            await message.edit(embed=embed)
+    						random.shuffle(pre_executed_ids)
+                            await asyncio.sleep(3)
+                        executed_id = pre_executed_ids[0]
+                        update_status(executed_id)
+                        exer = await bot.fetch_user(executed_id)
+                        await exer.send("あなたは処刑される事となりました\n遺言を残してください")
+                        exer_name = get_name_by_id(executed_id)
+                        embed.title = "処刑対象が決定しました"
+                        embed.description = f"投票結果\n{vote_dsc}\n \n{exer_name}が処刑されることになりました\n遺言の時間に移ります"
+                        embed.set_footer(text="✅を押して進行してください")
                         await message.edit(embed=embed)
-						random.shuffle(pre_executed_ids)
-                        await asyncio.sleep(3)
-                    executed_id = pre_executed_ids[0]
-                    update_status(executed_id)
-                    exer = await bot.fetch_user(executed_id)
-                    await exer.send("あなたは処刑される事となりました\n遺言を残してください")
-                    exer_name = get_name_by_id(executed_id)
-                    embed.title = "処刑対象が決定しました"
-                    embed.description = f"投票結果\n{vote_dsc}\n \n{exer_name}が処刑されることになりました\n遺言の時間に移ります"
-                    embed.set_footer(text="✅を押して進行してください")
+                        await message.add_reaction('✅')
+                elif embed.title.startswith("最多得票者が複数"):
+                    await message.remove_reaction(payload.emoji, member)
+                    remain_vote_repeat -= 1
+    				await persuasion_tasks(message)
+    			elif embed.title.startswith("処刑対象が決定しました"):
+                    await message.remove_reaction(payload.emoji, member)
+                    await will_tasks(message)
+                elif embed.title.startswith("遺言"):
+    				await message.remove_reaction(payload.emoji, member)
+    				embed.title = "おそろしい夜がやってきました"
+    				embed.description = "夜の行動を選択中です"
+                    embed.set_footer(text="しばらくお待ちください")
                     await message.edit(embed=embed)
-                    await message.add_reaction('✅')
-            elif payload.emoji.name == '✅' and embed.title.startswith("最多得票者が"):
-                await message.remove_reaction(payload.emoji, member)
-                remain_vote_repeat -= 1
-				await persuasion_tasks(message)
-			elif payload.emoji.name == '✅' and embed.title.startswith("処刑対象が決定しました"):
-                await message.remove_reaction(payload.emoji, member)
-                await will_tasks(message)
-            elif payload.emoji.name == '✅' and embed.title.startswith("遺言"):
-				await message.remove_reaction(payload.emoji, member)
-				embed.title = "おそろしい夜がやってきました"
-				embed.description = "夜の行動を選択中です"
-                embed.set_footer(text="しばらくお待ちください")
-                await message.edit(embed=embed)
-			elif payload.emoji.name == '✅' and embed.title.startswith("弁明"):
-	            await message.remove_reaction(payload.emoji, member)
-                count = 
-				embed.title = "決選投票を始めます"
-				embed.description = "LOADING" + "□"*count
-                embed.set_footer(text="しばらくお待ちください")
-				await message.edit(embed=embed)
-				await fin_vote_operates()
+    			elif embed.title.startswith("弁明"):
+    	            await message.remove_reaction(payload.emoji, member)
+                    count = 
+    				embed.title = "決選投票を始めます"
+    				embed.description = "LOADING" + "□"*count
+                    embed.set_footer(text="しばらくお待ちください")
+    				await message.edit(embed=embed)
+    				await fin_vote_operates()
 
 			
 			...
