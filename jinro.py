@@ -257,7 +257,7 @@ async def will_operates(message):
     embed.color = 0x8B4513
     embed.set_footer(text="□"*6+"\n遺言時間は1分です\nまもなく始まります")
     await message.edit(embed=embed)
-    emsg = await user.send("あなたは処刑される事となりました\n村人に遺言を残してください\n※まもなくミュートが外れます")
+    emsg = await user.send("※まもなくミュートが外れます")
     await asyncio.sleep(1)
     smsg = await user.send("遺言をスキップする場合は⏭️を押してください")
     await smsg.add_reaction('⏭️')
