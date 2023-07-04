@@ -1156,9 +1156,8 @@ async def on_raw_reaction_add(payload):
             elif embed.title == "処刑対象が決定しました":
                 await message.clear_reactions()
                 await will_tasks(message)
-            elif embed.title == "処刑が執行されました":
+            elif embed.title == "処刑が執行されました" or embed.title = "遺言がスキップされ処刑が執行されました":
                 await message.clear_reactions()
-                alives_count = func.count_alives()
                 embed.title = "おそろしい夜がやってきました"
                 embed.color = 0xFF0000
                 embed.description = "夜の行動を選択中です"
@@ -1182,12 +1181,6 @@ async def on_raw_reaction_add(payload):
                     await send_fortune_operates()
                     await asyncio.sleep(1)
                     await send_guard_operates()
-            elif embed.title.startswith("遺言"):
-                await message.clear_reactions()
-                embed.title = "おそろしい夜がやってきました"
-                embed.description = "夜の行動を選択中です"
-                embed.set_footer(text="しばらくお待ちください")
-                await message.edit(embed=embed)
             elif embed.title.startswith("弁明"):
                 await message.clear_reactions()
                 alives_count = func.count_alives()
@@ -1205,6 +1198,7 @@ async def on_raw_reaction_add(payload):
 
     elif isinstance(channel, discord.DMChannel):
         global exit_flg
+        user = await bot.fetch_user(payload.user_id)
         if payload.emoji.name == '🆗':
             if message.content.startswith("確認ができたら") or message.content.startswith("準備ができたら"):
                 await message.delete()
@@ -1234,8 +1228,18 @@ async def on_raw_reaction_add(payload):
         elif payload.emoji.name == '⏭️' and message.content.startswith("遺言をスキップする場合は"):
             await message.delete()
             await task_kill()
-            msg = await user.send("あなたの遺言がスキップされます")
+            channel = await bot.fetch_channel(TXT_CH_ID)
+            target_message = await channel.fetch_message(main_emb_message_id)
+            target_embed = target_message.embeds[0]
             await mute_select(payload.user_id)
+            msg = await user.send("遺言はスキップされ処刑されました")
+            await add_death_prefix(payload.user_id)
+            target_embed.title = "処刑が執行されました"
+            target_embed.color = 0x8B4513
+            target_embed.description = ""
+            target_embed.set_footer(text="✅を押して進行してください")
+            await target_message.edit(embed=target_embed)
+            await target_message.add_reaction('✅')
             await asyncio.sleep(5)
             await msg.delete()
 
@@ -1251,7 +1255,6 @@ async def on_raw_reaction_add(payload):
                         await sent_message.add_reaction(REACTION_EMOJIS_B[0])
                         await sent_message.add_reaction(REACTION_EMOJIS_B[1])
         elif message.content.startswith("襲撃する対象を選んでください"): # 以下のユーザーを襲撃します or 以下のユーザーを襲撃する候補として提案します
-            user = await bot.fetch_user(payload.user_id)
             messages = message.content.split("\n")
             wolf_count = func.check_werewolf_num()
             for i in range(len(REACTION_EMOJIS_A)):
@@ -1266,7 +1269,6 @@ async def on_raw_reaction_add(payload):
                         await sent_message.add_reaction(REACTION_EMOJIS_B[0])
                         await sent_message.add_reaction(REACTION_EMOJIS_B[1])
         elif message.content.startswith("占う対象を選んでください"): # 以下のユーザーを占います
-            user = await bot.fetch_user(payload.user_id)
             messages = message.content.split("\n")
             for i in range(len(REACTION_EMOJIS_A)):
                 if payload.emoji.name == REACTION_EMOJIS_A[i]:
@@ -1277,7 +1279,6 @@ async def on_raw_reaction_add(payload):
                         await sent_message.add_reaction(REACTION_EMOJIS_B[0])
                         await sent_message.add_reaction(REACTION_EMOJIS_B[1])
         elif message.content.startswith("保護する対象を選んでください"): # 以下のユーザーを守ります
-            user = await bot.fetch_user(payload.user_id)
             messages = message.content.split("\n")
             for i in range(len(REACTION_EMOJIS_A)):
                 if payload.emoji.name == REACTION_EMOJIS_A[i]:
@@ -1288,7 +1289,6 @@ async def on_raw_reaction_add(payload):
                         await sent_message.add_reaction(REACTION_EMOJIS_B[0])
                         await sent_message.add_reaction(REACTION_EMOJIS_B[1])
         elif message.content.startswith("質問する相手を選んでください"): # 以下のユーザーに質問します
-            user = await bot.fetch_user(payload.user_id)
             messages = message.content.split("\n")
             for i in range(len(REACTION_EMOJIS_A)):
                 if payload.emoji.name == REACTION_EMOJIS_A[i]:
@@ -1300,7 +1300,6 @@ async def on_raw_reaction_add(payload):
                         await sent_message.add_reaction(REACTION_EMOJIS_B[1])
 
         elif message.content.startswith("以下のユーザーに投票します"):
-            user = await bot.fetch_user(payload.user_id)
             if payload.emoji.name == '⭕':
                 second_line = message.content.split('\n')[1]
                 await message.delete()
@@ -1333,7 +1332,6 @@ async def on_raw_reaction_add(payload):
             elif payload.emoji.name == '❌':
                 await message.delete()
         elif message.content.startswith("以下のユーザーを襲撃します"):
-            user = await bot.fetch_user(payload.user_id)
             if payload.emoji.name == '⭕':
                 second_line = message.content.split('\n')[1]
                 await message.delete()
@@ -1362,7 +1360,6 @@ async def on_raw_reaction_add(payload):
             elif payload.emoji.name == '❌':
                 await message.delete()
         elif message.content.startswith("以下のユーザーを襲撃する候補として提案します"):
-            user = await bot.fetch_user(payload.user_id)
             if payload.emoji.name == '⭕':
                 second_line = message.content.split('\n')[1]
                 await message.delete()
@@ -1378,7 +1375,6 @@ async def on_raw_reaction_add(payload):
             elif payload.emoji.name == '❌':
                 await message.delete()
         elif message.content.startswith("以下のユーザーが襲撃対象に提案されています"):
-            user = await bot.fetch_user(payload.user_id)
             if payload.emoji.name == '⭕':
                 second_line = message.content.split('\n')[1]
                 await message.delete()
@@ -1405,7 +1401,6 @@ async def on_raw_reaction_add(payload):
                 id_number = second_line.split('id=')[-1].strip()
                 await send_werewolf_cancel(id_number, str(payload.user_id))
         elif message.content.startswith("以下のユーザーを占います"):
-            user = await bot.fetch_user(payload.user_id)
             if payload.emoji.name == '⭕':
                 second_line = message.content.split('\n')[1]
                 await message.delete()
@@ -1432,7 +1427,6 @@ async def on_raw_reaction_add(payload):
             elif payload.emoji.name == '❌':
                 await message.delete()
         elif message.content.startswith("以下のユーザーを守ります"):
-            user = await bot.fetch_user(payload.user_id)
             if payload.emoji.name == '⭕':
                 second_line = message.content.split('\n')[1]
                 await message.delete()
@@ -1608,13 +1602,27 @@ async def skip_to_next(ctx: commands.Context):
             user = await bot.fetch_user(executed_id)
             await user.send("あなたは処刑されました")
             await add_death_prefix(executed_id)
-            embed.title = "処刑が執行されました"
+            embed.title = "遺言がスキップされ処刑が執行されました"
             embed.color = 0x8B4513
             embed.description = ""
             embed.set_footer(text="✅を押して進行してください")
             await message.edit(embed=embed)
             await mute_select(executed_id)
             await message.add_reaction('✅')
+        elif embed.title.startswith("弁明の時間"):
+            await message.clear_reactions()
+            func.set_vote_data(2)
+            perexer_ids = any_function()
+            for perexer_id in perexer_ids:
+                await mute_select(perexer_id)
+            await clean_persuasion_dm(perexer_ids)
+            row_count = func.get_row_count()
+            vote_count = alives_count - row_count
+            embed.title = "決選投票を始めます"
+            embed.description = "**LOADING**" + "□"*vote_count
+            embed.set_footer(text="しばらくお待ちください")
+            await message.edit(embed=embed)
+            await fin_vote_operates()
 
 @bot.command(name='dbm')
 async def delete_bot_messages(ctx: commands.Context, num: int = 1):
