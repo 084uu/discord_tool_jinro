@@ -543,6 +543,9 @@ async def clean_persuasion_dm(ids=None):
                 if message.content.startswith("あなたの弁明") or message.content.startswith("弁明をスキップ") or message.content.startswith("処刑対象の候補に"):
                     await message.delete()
 
+async def clean_will_dm(user_id=None):
+    ...
+
 async def send_select_to(user_id): # 質問する相手を選んでください
     to_ids = func.select_ids_other_alives(user_id)
     name_list = func.get_name_list(to_ids)
@@ -1599,6 +1602,7 @@ async def skip_to_next(ctx: commands.Context):
             await mute_alives()
             await message.add_reaction('✅')
         elif embed.title.startswith("遺言の時間"):
+             await message.clear_reactions()
             executed_name = embed.description.split("が処刑される")[0].split("\n")[-1]
             executed_id = func.get_id_by_name(executed_name)
             user = await bot.fetch_user(executed_id)
