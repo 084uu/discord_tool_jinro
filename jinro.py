@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 intents = discord.Intents.default()
 intents.typing = False
 intents.presences = False
+intents.dm_messages = True
 intents.message_content = True
 intents.members = True
 intents.guilds = True
@@ -193,7 +194,7 @@ async def interview_operates(message):
             if user_exit_flg: continue
             while True:
                 if exit_flg: return
-                if user_exit_flg: continue
+                if user_exit_flg: break
                 payload = await bot.wait_for("raw_reaction_add", check=check, timeout=30)
                 if payload.emoji.name == "⭕":
                     dm_channel = await bot.fetch_channel(payload.channel_id)
@@ -211,42 +212,42 @@ async def interview_operates(message):
                             tmsg = await to_user.send(f"まもなく「{user_name}」からの質問が開始されます\n※まもなくミュートが外れます")
                             await asyncio.sleep(3)
                             if exit_flg: return
-                            if user_exit_flg: continue
+                            if user_exit_flg: break
                             await unmute_select(user_id)
                             await unmute_select(to_id)
                             embed.set_footer(text="□"*6 +"\n残り時間は60秒です")
                             await message.edit(embed=embed)
                             await asyncio.sleep(10)
                             if exit_flg: return
-                            if user_exit_flg: continue
+                            if user_exit_flg: break
                             embed.set_footer(text="■" +"□"*5 +"\n残り時間は50秒です")
                             await message.edit(embed=embed)
                             await asyncio.sleep(10)
                             if exit_flg: return
-                            if user_exit_flg: continue
+                            if user_exit_flg: break
                             embed.set_footer(text="■"*2 +"□"*4 +"\n残り時間は40秒です")
                             await message.edit(embed=embed)
                             await fmsg.delete()
                             await tmsg.delete()
                             await asyncio.sleep(10)
                             if exit_flg: return
-                            if user_exit_flg: continue
+                            if user_exit_flg: break
                             embed.set_footer(text="■"*3 +"□"*3 +"\n残り時間は30秒です")
                             await message.edit(embed=embed)
                             await asyncio.sleep(10)
                             if exit_flg: return
-                            if user_exit_flg: continue
+                            if user_exit_flg: break
                             embed.set_footer(text="■"*4 +"□"*2 +"\n残り時間は20秒です")
                             await message.edit(embed=embed)
                             await asyncio.sleep(10)
                             if exit_flg: return
-                            if user_exit_flg: continue
+                            if user_exit_flg: break
                             embed.set_footer(text="■"*5 +"□"*1 +"\n残り時間は10秒です")
                             await message.edit(embed=embed)
                             await asyncio.sleep(10)
                             await smsg.delete()
                             if exit_flg: return
-                            if user_exit_flg: continue
+                            if user_exit_flg: break
                             embed.set_footer(text="■"*6 +"\n残り時間は0秒です")
                             await message.edit(embed=embed)
                             await mute_select(user_id)
@@ -585,7 +586,7 @@ async def clean_werewolf_dm():
             if msg.author.bot:
                 bot_messages.append(msg)
         for msg in bot_messages:
-            if msg.content.startswith("襲撃する対象を選んでください") or msg.content.startswith("以下のユーザーを襲撃する候補として提案します") or msg.content.startswith("以下のユーザーが襲撃対象に提案されています"):
+            if msg.content.startswith("襲撃する対象を選んでください"):
                 await msg.delete()
 
 async def clean_select_to_dm(user_id):
@@ -932,10 +933,11 @@ async def kil_check():
         await user.send("あなたは襲撃され殺されました")
         await add_death_prefix(killed_id)
         await add_rip_role(killed_id)
+        killed_name = func.get_name_by_id(killed_id)
         for alive_wolf_id in alive_wolf_ids:
             live_wolf = await bot.fetch_user(alive_wolf_id)
-            await live_wolf.send("襲撃に成功しました")
-        killed_name = func.get_name_by_id(killed_id)
+            await live_wolf.send(f"「{killed_name}」の襲撃に成功しました")
+
         return killed_name
     else:
         return None
@@ -1360,7 +1362,7 @@ async def on_raw_reaction_add(payload):
                 if to_id:
                     await clean_select_to_dm(to_id)
             await mute_select(payload.user_id)
-            user_name = embed.description.split("」から「")[0]
+            user_name = func.get_name_by_id(payload.user_id)
             msg = await user.send("あなたの質問の時間がスキップされます")
             await mute_select(payload.user_id)
             target_embed.description = f"「{user_name}」が質問をスキップしました"
@@ -1588,7 +1590,6 @@ async def on_raw_reaction_add(payload):
                 await message.delete()
 
 #### !CMMAND ####
-
 @bot.command(name='jinro')
 async def create_embed_with_reaction(ctx: commands.Context):
     await ctx.message.delete()
@@ -1674,11 +1675,32 @@ async def create_embed_prestart(ctx: commands.Context):
     global main_emb_message_id
     main_emb_message_id = message.id
 
+@bot.command(name='premo')
+async def create_embed_premorning(ctx: commands.Context):
+    await ctx.message.delete()
+    embed = discord.Embed(title='おそろしい夜がやってきました', color=0xFF0000)
+    embed.description = "朝の会議から始まります"
+    embed.set_footer(text="✅を押して進行してください")
+    message = await ctx.send(embed=embed)
+    await message.add_reaction('✅')
+    global main_emb_message_id
+    main_emb_message_id = message.id
+
+@bot.command(name='prein')
+async def create_embed_preinterview(ctx: commands.Context):
+    await ctx.message.delete()
+    embed = discord.Embed(title='会議の時間です', color=0x8B4513)
+    embed.description = "質疑応答から始まります"
+    embed.set_footer(text="✅を押して進行してください")
+    message = await ctx.send(embed=embed)
+    await message.add_reaction('✅')
+    global main_emb_message_id
+    main_emb_message_id = message.id
+
 @bot.command(name='skip')
 async def skip_to_next(ctx: commands.Context):
     await ctx.message.delete()
     await task_kill()
-    await asyncio.sleep(2)
     global main_emb_message_id
     if main_emb_message_id is not None:
         channel = await bot.fetch_channel(TXT_CH_ID)
@@ -1753,7 +1775,7 @@ async def skip_to_next(ctx: commands.Context):
 @bot.command(name='dbmj')
 async def delete_bot_messages(ctx: commands.Context, num: int = 1):
     channel = ctx.channel
-    if isinstance(channel, discord.DMChannel):
+    if isinstance(channel, discord.TextChannel):
         await ctx.message.delete()
     bot_messages = []
     async for message in channel.history(limit=50):
