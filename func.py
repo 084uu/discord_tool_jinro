@@ -1,3 +1,6 @@
+"""
+author gyunyu
+"""
 import csv
 import os
 import random
@@ -34,7 +37,7 @@ def get_name_by_id(user_id):
     with open('data.csv', 'r') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            if row['id'] == user_id:
+            if row['id'] == str(user_id):
                 return row['name']
     return None
 
@@ -61,7 +64,7 @@ def get_to_id(user_id):
     with open('interview.csv', 'r') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            if row['from'] == user_id:
+            if row['from'] == str(user_id):
                 return row['to']
     return None
 
@@ -311,7 +314,7 @@ def set_vote_data(flg=1):
                     row['vote'] = '0'
                     row['list'] = ''
                     writer.writerow(row)
-        os.replace("vote_temp.csv", "vote.csv")
+        os.replace("vote_tmp.csv", "vote.csv")
     elif flg == 2:
         executed_ids = get_vote_max_ids()
         if len(executed_ids) > 1:
@@ -327,7 +330,7 @@ def set_vote_data(flg=1):
                         row['vote'] = '0'
                         row['list'] = ''
                         writer.writerow(row)
-            os.replace("vote_temp.csv", "vote.csv")
+            os.replace("vote_tmp.csv", "vote.csv")
 
 def reset_flg_status():
     rows = []
@@ -356,7 +359,7 @@ def select_ids_other_alives(user_id):
     with open('status.csv', 'r') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            if row['vital'] == '0' and row['id'] != user_id:
+            if row['vital'] == '0' and row['id'] != str(user_id):
                 selected_ids.append(row['id'])
     return selected_ids
 
@@ -371,7 +374,7 @@ def random_select_to(user_id):
         reader = csv.DictReader(file)
         rows = list(reader)
         for row in rows:
-            if row['from'] == user_id:
+            if row['from'] == str(user_id):
                 row['to'] = selected_id
     with open('interview.csv', 'w', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=reader.fieldnames)
@@ -499,8 +502,10 @@ def assign_roles():
         roles = ['人狼', '人狼', '人狼', '狂人', '騎士', '占い師', '霊媒師']
     elif name_count <= 4:
         roles = ['人狼', '占い師']
-    elif name_count <= 6:
+    elif name_count == 5:
         roles = ['人狼', '狂人', '騎士', '占い師']
+    elif name_count == 6:
+        roles = ['人狼', '人狼', '騎士', '占い師', '霊媒師']
     else:
         roles = ['人狼', '人狼', '狂人', '騎士', '占い師', '霊媒師']
     num_citizens = name_count - len(roles)
