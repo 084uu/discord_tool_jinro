@@ -172,6 +172,7 @@ async def interview_operates(message):
     embed.color = 0x8B4513
     embed.set_footer(text="しばらくお待ちください")
     await message.edit(embed=embed)
+    func.reset_temp()
     await asyncio.sleep(3)
     if exit_flg: return
     shuffled_order_ids = func.shuffle_discussion_order()
@@ -181,6 +182,7 @@ async def interview_operates(message):
         user_name = func.get_name_by_id(user_id)
         embed.description = f"{index+1}人目の質問者は「{user_name}」です"
         embed.set_footer(text=f"{user_name}の応答を待機しています")
+        await asyncio.sleep(3)
         await message.edit(embed=embed)
         if exit_flg or user_exit_flg: return
         user = await bot.fetch_user(user_id)
@@ -196,67 +198,68 @@ async def interview_operates(message):
                 if exit_flg: return
                 if user_exit_flg: break
                 payload = await bot.wait_for("raw_reaction_add", check=check, timeout=30)
-                if payload.emoji.name == "⭕":
-                    dm_channel = await bot.fetch_channel(payload.channel_id)
-                    dm_message = await dm_channel.fetch_message(payload.message_id)
-                    if dm_message.content.startswith("以下のユーザーに質問します"):
+                dm_channel = await bot.fetch_channel(payload.channel_id)
+                dm_message = await dm_channel.fetch_message(payload.message_id)
+                if payload.emoji.name == "⭕" and dm_message.content.startswith("以下のユーザーに質問します"):
+                    await asyncio.sleep(3)
+                    to_id = func.get_to_id(payload.user_id)
+                    if to_id:
+                        to_name = func.get_name_by_id(to_id)
+                        to_user = await bot.fetch_user(to_id)
+                        embed.description = f"「{user_name}」から「{to_name}」に質問です"
+                        embed.set_footer(text= "質問時間は1分です\nまもなく始まります")
+                        await message.edit(embed=embed)
+                        fmsg = await user.send(f"まもなく「{to_name}」への質問が開始されます\n※まもなくミュートが外れます")
+                        tmsg = await to_user.send(f"まもなく「{user_name}」からの質問が開始されます\n※まもなくミュートが外れます")
                         await asyncio.sleep(3)
-                        to_id = func.get_to_id(str(payload.user_id))
-                        if to_id:
-                            to_name = func.get_name_by_id(to_id)
-                            to_user = await bot.fetch_user(to_id)
-                            embed.description = f"「{user_name}」から「{to_name}」に質問です"
-                            embed.set_footer(text= "質問時間は1分です\nまもなく始まります")
-                            await message.edit(embed=embed)
-                            fmsg = await user.send(f"まもなく「{to_name}」への質問が開始されます\n※まもなくミュートが外れます")
-                            tmsg = await to_user.send(f"まもなく「{user_name}」からの質問が開始されます\n※まもなくミュートが外れます")
-                            await asyncio.sleep(3)
-                            if exit_flg: return
-                            if user_exit_flg: break
-                            await unmute_select(user_id)
-                            await unmute_select(to_id)
-                            embed.set_footer(text="□"*6 +"\n残り時間は60秒です")
-                            await message.edit(embed=embed)
-                            await asyncio.sleep(10)
-                            if exit_flg: return
-                            if user_exit_flg: break
-                            embed.set_footer(text="■" +"□"*5 +"\n残り時間は50秒です")
-                            await message.edit(embed=embed)
-                            await asyncio.sleep(10)
-                            if exit_flg: return
-                            if user_exit_flg: break
-                            embed.set_footer(text="■"*2 +"□"*4 +"\n残り時間は40秒です")
-                            await message.edit(embed=embed)
-                            await fmsg.delete()
-                            await tmsg.delete()
-                            await asyncio.sleep(10)
-                            if exit_flg: return
-                            if user_exit_flg: break
-                            embed.set_footer(text="■"*3 +"□"*3 +"\n残り時間は30秒です")
-                            await message.edit(embed=embed)
-                            await asyncio.sleep(10)
-                            if exit_flg: return
-                            if user_exit_flg: break
-                            embed.set_footer(text="■"*4 +"□"*2 +"\n残り時間は20秒です")
-                            await message.edit(embed=embed)
-                            await asyncio.sleep(10)
-                            if exit_flg: return
-                            if user_exit_flg: break
-                            embed.set_footer(text="■"*5 +"□"*1 +"\n残り時間は10秒です")
-                            await message.edit(embed=embed)
-                            await asyncio.sleep(10)
-                            await smsg.delete()
-                            if exit_flg: return
-                            if user_exit_flg: break
-                            embed.set_footer(text="■"*6 +"\n残り時間は0秒です")
-                            await message.edit(embed=embed)
-                            await mute_select(user_id)
-                            await mute_select(to_id)
-                            embed.description = f"「{user_name}」から「{to_name}」への質問が終わりました"
-                            embed.set_footer(text="次の質問者へ移ります")
-                            await message.edit(embed=embed)
-                            await asyncio.sleep(3)
+                        if exit_flg: return
+                        if user_exit_flg: break
+                        await unmute_select(user_id)
+                        await unmute_select(to_id)
+                        embed.set_footer(text="□"*6 +"\n残り時間は60秒です")
+                        await message.edit(embed=embed)
+                        await asyncio.sleep(10)
+                        if exit_flg: return
+                        if user_exit_flg: break
+                        embed.set_footer(text="■" +"□"*5 +"\n残り時間は50秒です")
+                        await message.edit(embed=embed)
+                        await asyncio.sleep(10)
+                        if exit_flg: return
+                        if user_exit_flg: break
+                        embed.set_footer(text="■"*2 +"□"*4 +"\n残り時間は40秒です")
+                        await message.edit(embed=embed)
+                        await fmsg.delete()
+                        await tmsg.delete()
+                        await asyncio.sleep(10)
+                        if exit_flg: return
+                        if user_exit_flg: break
+                        embed.set_footer(text="■"*3 +"□"*3 +"\n残り時間は30秒です")
+                        await message.edit(embed=embed)
+                        await asyncio.sleep(10)
+                        if exit_flg: return
+                        if user_exit_flg: break
+                        embed.set_footer(text="■"*4 +"□"*2 +"\n残り時間は20秒です")
+                        await message.edit(embed=embed)
+                        await asyncio.sleep(10)
+                        if exit_flg: return
+                        if user_exit_flg: break
+                        embed.set_footer(text="■"*5 +"□"*1 +"\n残り時間は10秒です")
+                        await message.edit(embed=embed)
+                        await asyncio.sleep(10)
+                        await smsg.delete()
+                        if exit_flg: return
+                        if user_exit_flg: break
+                        embed.set_footer(text="■"*6 +"\n残り時間は0秒です")
+                        await message.edit(embed=embed)
+                        await mute_select(user_id)
+                        await mute_select(to_id)
+                        embed.description = f"「{user_name}」から「{to_name}」への質問が終わりました"
+                        embed.set_footer(text="次の質問者へ移ります")
+                        await message.edit(embed=embed)
+                        await asyncio.sleep(3)
                         break
+                elif payload.emoji.name == "⏭️" and dm_message.content.startswith("質問をスキップする場合は"):
+                    break
         except asyncio.TimeoutError:
             await clean_select_to_dm(user_id)
             await send_rand_to(user_id)
@@ -1295,7 +1298,6 @@ async def on_raw_reaction_add(payload):
                 func.reset_check_column()
                 func.set_vote_data()
                 func.reset_flg_status()
-                func.reset_temp()
                 await asyncio.sleep(1)
                 await send_shaman_operates()
                 await asyncio.sleep(1)
@@ -1349,25 +1351,24 @@ async def on_raw_reaction_add(payload):
         elif payload.emoji.name == '⏭️' and message.content.startswith("質問をスキップする場合は"):
             await message.delete()
             user_exit_flg = True
+            await mute_select(payload.user_id)
             channel = await bot.fetch_channel(TXT_CH_ID)
             target_message = await channel.fetch_message(main_emb_message_id)
             target_embed = target_message.embeds[0]
+            user_name = func.get_name_by_id(payload.user_id)
+            target_embed.description = f"「{user_name}」が質問をスキップしました"
+            target_embed.set_footer(text="次の質問者へ移ります")
+            await target_message.edit(embed=target_embed)
             if "人目の質問者は" in target_embed.description:
                 await clean_select_to_dm(payload.user_id)
                 await clean_rand_to_dm(payload.user_id)
             elif "に質問です" in target_embed.description:
                 await clean_select_to_dm(payload.user_id)
-                to_name = embed.description.split("」から「")[-1].rstrip("」に質問です")
+                to_name = target_embed.description.split("」から「")[-1].rstrip("」に質問です")
                 to_id = func.get_id_by_name(to_name)
                 if to_id:
                     await clean_select_to_dm(to_id)
-            await mute_select(payload.user_id)
-            user_name = func.get_name_by_id(payload.user_id)
             msg = await user.send("あなたの質問の時間がスキップされます")
-            await mute_select(payload.user_id)
-            target_embed.description = f"「{user_name}」が質問をスキップしました"
-            target_embed.set_footer(text="次の質問者へ移ります")
-            await target_message.edit(embed=target_embed)
             await asyncio.sleep(5)
             await msg.delete()
         elif payload.emoji.name == '⏭️' and message.content.startswith("弁明をスキップする場合は"):
@@ -1381,10 +1382,10 @@ async def on_raw_reaction_add(payload):
         elif payload.emoji.name == '⏭️' and message.content.startswith("遺言をスキップする場合は"):
             await message.delete()
             await task_kill()
+            await mute_select(payload.user_id)
             channel = await bot.fetch_channel(TXT_CH_ID)
             target_message = await channel.fetch_message(main_emb_message_id)
             target_embed = target_message.embeds[0]
-            await mute_select(payload.user_id)
             await clean_will_dm(payload.user_id)
             msg = await user.send("遺言がスキップされ処刑が執行されました")
             await add_death_prefix(payload.user_id)
