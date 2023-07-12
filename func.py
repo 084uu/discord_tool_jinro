@@ -73,7 +73,7 @@ def get_vote_total():
     with open('vote.csv', 'r', newline='') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            vote_count = int(row['vote'])
+            vote_count = int(row['done'])
             total += vote_count
     return total
 
@@ -83,13 +83,13 @@ def get_vote_max_ids():
     with open('vote.csv', 'r', newline='') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            vote_count = int(row['vote'])
+            vote_count = int(row['done'])
             if vote_count > max_vote:
                 max_vote = vote_count
     with open('vote.csv', 'r', newline='') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            if int(row['vote']) == max_vote:
+            if int(row['done']) == max_vote:
                 max_ids.append(row['id'])
     return max_ids
 
@@ -109,7 +109,7 @@ def get_exeid_by_sham():
         rows = list(reader)
     for row in rows:
         if row['sham'] == '1':
-            return row['id']
+            return row['id']    
 
 def mk_vote_dsc():
     rows = []
@@ -119,15 +119,15 @@ def mk_vote_dsc():
         rows = list(reader)
     for row in rows:
         name = row['name']
-        vote_count = row['vote']
+        vote_count = row['done']
         vote_list = row['list']
         vote_ids = vote_list.strip(";").split(";")
         vote_names = get_name_list(vote_ids)
-        votes = ",".join(vote_names)
+        votes = ", ".join(vote_names)
         if vote_count == "0":
             dsc_lines.append(f"{name} {vote_count}票")
         else:
-            dsc_lines.append(f"{name} {vote_count}票 <- {votes}")
+            dsc_lines.append(f"{name} {vote_count}票 <- [{votes}]")
     return "\n".join(dsc_lines)
 
 def update_check_count(payload): # DMへの反応をCHECKする
@@ -207,7 +207,7 @@ def update_check_count_other():
     check_count = sum(1 for row in rows if row['check'] == '1')
     return check_count
 
-def update_from_to(user_id):
+def update_from(user_id):
     with open('interview.csv', 'a', newline='') as file:
         writer = csv.writer(file)
         writer.writerow([user_id,])
@@ -275,10 +275,16 @@ def update_vote_list(id_number, user_id):
         reader = csv.DictReader(file)
         rows = list(reader)
     for row in rows:
-        if row['id'] == id_number:
-            vote_count = int(row['vote'])
+        if row['id'] == str(user_id):
+            if row['did'] == '1':
+                return
+            else:
+                row['did'] = '1'
+    for row in rows:
+        if row['id'] == str(id_number):
+            vote_count = int(row['done'])
             vote_count += 1
-            row['vote'] = str(vote_count)
+            row['done'] = str(vote_count)
             row['list'] += ';' + str(user_id)
     with open('vote.csv', 'w', newline='') as file:
         fieldnames = reader.fieldnames
@@ -304,14 +310,15 @@ def set_vote_data(flg=1):
         alives_ids = get_alives_ids()
         with open('data.csv', 'r') as file:
             reader = csv.DictReader(file)
-            fieldnames = reader.fieldnames + ['vote', 'list']
+            fieldnames = reader.fieldnames + ['did', 'done', 'list']
             with open('vote_tmp.csv', 'w', newline='') as outfile:
                 writer = csv.DictWriter(outfile, fieldnames=fieldnames)
                 writer.writeheader()
                 for row in reader:
                     if row["id"] not in alives_ids:
                         continue
-                    row['vote'] = '0'
+                    row['did'] = '0'
+                    row['done'] = '0'
                     row['list'] = ''
                     writer.writerow(row)
         os.replace("vote_tmp.csv", "vote.csv")
@@ -320,14 +327,15 @@ def set_vote_data(flg=1):
         if len(executed_ids) > 1:
             with open('data.csv', 'r') as file:
                 reader = csv.DictReader(file)
-                fieldnames = reader.fieldnames + ['vote', 'list']
+                fieldnames = reader.fieldnames + ['did', 'done', 'list']
                 with open('vote_tmp.csv', 'w', newline='') as outfile:
                     writer = csv.DictWriter(outfile, fieldnames=fieldnames)
                     writer.writeheader()
                     for row in reader:
                         if row["id"] not in executed_ids:
                             continue
-                        row['vote'] = '0'
+                        row['did'] = '0'
+                        row['done'] = '0'
                         row['list'] = ''
                         writer.writerow(row)
             os.replace("vote_tmp.csv", "vote.csv")
@@ -449,12 +457,13 @@ def ini_settings():
     os.replace("status_tmp.csv", "status.csv")
     with open('data.csv', 'r') as file:
         reader = csv.DictReader(file)
-        fieldnames = reader.fieldnames + ['vote', 'list']
+        fieldnames = reader.fieldnames + ['did', 'done', 'list']
         with open('vote_tmp.csv', 'w', newline='') as outfile:
             writer = csv.DictWriter(outfile, fieldnames=fieldnames)
             writer.writeheader()
             for row in reader:
-                row['vote'] = '0'
+                row['did'] = '0'
+                row['done'] = '0'
                 row['list'] = ''
                 writer.writerow(row)
     os.replace("vote_tmp.csv", "vote.csv")
