@@ -65,28 +65,19 @@ def get_to_id(user_id):
                 return row['to']
     return None
 
-def get_vote_total():
-    total = 0
-    with open('vote.csv', 'r', newline='') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            vote_count = int(row['done'])
-            total += vote_count
-    return total
-
 def get_vote_max_ids():
     max_vote = 0
     max_ids = []
     with open('vote.csv', 'r', newline='') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            vote_count = int(row['done'])
+            vote_count = int(row['ted'])
             if vote_count > max_vote:
                 max_vote = vote_count
     with open('vote.csv', 'r', newline='') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            if int(row['done']) == max_vote:
+            if int(row['ted']) == max_vote:
                 max_ids.append(row['id'])
     return max_ids
 
@@ -98,6 +89,15 @@ def get_alives_ids():
             if row['vital'] == '0':
                 alives_ids.append(row['id'])
     return alives_ids
+
+def get_alivewolfs_ids():
+    wolf_ids = []
+    with open('status.csv', 'r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            if row['job'] == '人狼' and row['vital'] == '0':
+                wolf_ids.append(row['id'])
+    return wolf_ids
 
 def get_exeid_by_sham():
     rows = []
@@ -116,7 +116,7 @@ def mk_vote_dsc():
         rows = list(reader)
     for row in rows:
         name = row['name']
-        vote_count = row['done']
+        vote_count = row['ted']
         vote_list = row['list']
         vote_ids = vote_list.strip(";").split(";")
         vote_names = get_name_list(vote_ids)
@@ -136,7 +136,10 @@ def update_check_count(payload): # DMへの反応をCHECKする
         rows = list(reader)
     for row in rows:
         if row['id'] == str(user_id):
-            row['check'] = '1'
+            if row['check'] == '1':
+                return -1
+            else:
+                row['check'] = '1'
         if row['check'] == '1':
             check_count += 1
     with open('check.csv', 'w', newline='') as file:
@@ -209,43 +212,32 @@ def update_from(user_id):
         writer = csv.writer(file)
         writer.writerow([user_id,])
 
-def update_status_excuted(user_id):
+def update_status(user_id, flg=0):
     rows = []
     with open('status.csv', 'r') as file:
         reader = csv.DictReader(file)
         rows = list(reader)
-    for row in rows:
-        if row['id'] == user_id:
-            row['vital'] = '1'
-            row['sham'] = '1'
-    with open('status.csv', 'w', newline='') as file:
-        fieldnames = reader.fieldnames
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-
-def update_status_grd(user_id):
-    rows = []
-    with open('status.csv', 'r') as file:
-        reader = csv.DictReader(file)
-        rows = list(reader)
-    for row in rows:
-        if row['id'] == user_id:
-            row['grd'] = '1'
-    with open('status.csv', 'w', newline='') as file:
-        fieldnames = reader.fieldnames
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
-
-def update_kill_status(id_number):
-    rows = []
-    with open('status.csv', 'r') as file:
-        reader = csv.DictReader(file)
-        rows = list(reader)
-    for row in rows:
-        if row['id'] == id_number:
-            row['kil'] = '1'
+    if flg == 1:
+        for row in rows:
+            if row['id'] == str(user_id):
+                row['kil'] = '1'
+    elif flg == 2:
+        for row in rows:
+            if row['id'] == str(user_id):
+                row['ftnd'] = '2'
+    elif flg == 3:
+        for row in rows:
+            if row['id'] == str(user_id):
+                row['grd'] = '1'
+    elif flg == 4:
+        for row in rows:
+            if row['id'] == str(user_id):
+                row['grd'] = '2'
+    elif flg == 5:
+        for row in rows:
+            if row['id'] == str(user_id):
+                row['vital'] = '1'
+                row['sham'] = '1'
     with open('status.csv', 'w', newline='') as file:
         fieldnames = reader.fieldnames
         writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -272,16 +264,10 @@ def update_vote_list(id_number, user_id):
         reader = csv.DictReader(file)
         rows = list(reader)
     for row in rows:
-        if row['id'] == str(user_id):
-            if row['did'] == '1':
-                return
-            else:
-                row['did'] = '1'
-    for row in rows:
         if row['id'] == str(id_number):
-            vote_count = int(row['done'])
+            vote_count = int(row['ted'])
             vote_count += 1
-            row['done'] = str(vote_count)
+            row['ted'] = str(vote_count)
             row['list'] += ';' + str(user_id)
     with open('vote.csv', 'w', newline='') as file:
         fieldnames = reader.fieldnames
@@ -307,15 +293,14 @@ def set_vote_data(flg=1):
         alives_ids = get_alives_ids()
         with open('data.csv', 'r') as file:
             reader = csv.DictReader(file)
-            fieldnames = reader.fieldnames + ['did', 'done', 'list']
+            fieldnames = reader.fieldnames + ['ted', 'list']
             with open('vote_tmp.csv', 'w', newline='') as outfile:
                 writer = csv.DictWriter(outfile, fieldnames=fieldnames)
                 writer.writeheader()
                 for row in reader:
                     if row["id"] not in alives_ids:
                         continue
-                    row['did'] = '0'
-                    row['done'] = '0'
+                    row['ted'] = '0'
                     row['list'] = ''
                     writer.writerow(row)
         os.replace("vote_tmp.csv", "vote.csv")
@@ -324,15 +309,14 @@ def set_vote_data(flg=1):
         if len(executed_ids) > 1:
             with open('data.csv', 'r') as file:
                 reader = csv.DictReader(file)
-                fieldnames = reader.fieldnames + ['did', 'done', 'list']
+                fieldnames = reader.fieldnames + ['ted', 'list']
                 with open('vote_tmp.csv', 'w', newline='') as outfile:
                     writer = csv.DictWriter(outfile, fieldnames=fieldnames)
                     writer.writeheader()
                     for row in reader:
                         if row["id"] not in executed_ids:
                             continue
-                        row['did'] = '0'
-                        row['done'] = '0'
+                        row['ted'] = '0'
                         row['list'] = ''
                         writer.writerow(row)
             os.replace("vote_tmp.csv", "vote.csv")
@@ -343,8 +327,37 @@ def reset_flg_status():
         reader = csv.DictReader(file)
         rows = list(reader)
     for row in rows:
+        if row['grd'] == '1':
+            row['grd'] = '0'
         if row['vital'] == '0':
             row['kil'] = '0'
+    with open('status.csv', 'w', newline='') as file:
+        fieldnames = reader.fieldnames
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+def reset_fortune():
+    rows = []
+    with open('status.csv', 'r') as file:
+        reader = csv.DictReader(file)
+        rows = list(reader)
+    for row in rows:
+        if row['ftnd'] == '2':
+            row['ftnd'] = '1'
+    with open('status.csv', 'w', newline='') as file:
+        fieldnames = reader.fieldnames
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+def reset_grd_flg():
+    rows = []
+    with open('status.csv', 'r') as file:
+        reader = csv.DictReader(file)
+        rows = list(reader)
+    for row in rows:
+        if row['grd'] == '2':
             row['grd'] = '0'
     with open('status.csv', 'w', newline='') as file:
         fieldnames = reader.fieldnames
@@ -365,6 +378,15 @@ def select_ids_other_alives(user_id):
         reader = csv.DictReader(file)
         for row in reader:
             if row['vital'] == '0' and row['id'] != str(user_id):
+                selected_ids.append(row['id'])
+    return selected_ids
+
+def select_grd_ids(user_id):
+    selected_ids = []
+    with open('status.csv', 'r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            if row['vital'] == '0' and row['grd'] != '2' and row['id'] != str(user_id):
                 selected_ids.append(row['id'])
     return selected_ids
 
@@ -407,15 +429,6 @@ def check_game_status():
     else:
         return 0
 
-def check_werewolf_num():
-    wolf_ids = []
-    with open('status.csv', 'r') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            if row['job'] == '人狼' and row['vital'] == '0':
-                wolf_ids.append(row['id'])
-    return len(wolf_ids)
-
 def count_alives():
     count = 0
     with open('status.csv', 'r') as status_file:
@@ -424,6 +437,26 @@ def count_alives():
             if row['vital'] == '0':
                 count += 1
     return count
+
+def check_status(flg=0):
+    checked = 0
+    rows = []
+    with open('status.csv', 'r') as file:
+        reader = csv.DictReader(file)
+        rows = list(reader)
+    if flg == 1:
+        for row in rows:
+            if row['vital'] == '0' and row['kil'] == '1':
+                checked += 1
+    elif flg == 2:
+        for row in rows:
+            if row['vital'] == '0' and row['ftnd'] == '2':
+                checked += 1
+    elif flg == 3:
+        for row in rows:
+            if row['vital'] == '0' and row['grd'] == '1':
+                checked += 1
+    return checked
 
 def shuffle_discussion_order():
     discussion_ids = []
@@ -454,13 +487,12 @@ def ini_settings():
     os.replace("status_tmp.csv", "status.csv")
     with open('data.csv', 'r') as file:
         reader = csv.DictReader(file)
-        fieldnames = reader.fieldnames + ['did', 'done', 'list']
+        fieldnames = reader.fieldnames + ['ted', 'list']
         with open('vote_tmp.csv', 'w', newline='') as outfile:
             writer = csv.DictWriter(outfile, fieldnames=fieldnames)
             writer.writeheader()
             for row in reader:
-                row['did'] = '0'
-                row['done'] = '0'
+                row['ted'] = '0'
                 row['list'] = ''
                 writer.writerow(row)
     os.replace("vote_tmp.csv", "vote.csv")
