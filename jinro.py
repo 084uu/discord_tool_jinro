@@ -1197,6 +1197,8 @@ async def on_raw_reaction_add(payload):
         if payload.emoji.name == '❌':
             await message.remove_reaction(payload.emoji, member)
             await message.delete()
+            if embed:
+                main_emb_message_id = None
         elif message.content.startswith("襲撃する対象を選んでください"): # 以下のユーザーを襲撃します
             wolf_count = len(func.get_alivewolfs_ids())
             messages = message.content.split("\n")
@@ -1241,7 +1243,7 @@ async def on_raw_reaction_add(payload):
                         await target_message.add_reaction('✅')
             elif payload.emoji.name == '❌':
                 await message.delete()
-        elif payload.emoji.name == '✋' and embed:
+        elif payload.emoji.name == '✋' and embed.title == "人狼メンバー設定":
             await message.remove_reaction(payload.emoji, member)
             if payload.message_id != main_emb_message_id:
                 embed.set_footer(text="この埋め込みは現在ACTIVEではありません\n`!act`を使ってACTIVATEするか\n新しい埋め込みを作成してください")
@@ -1249,16 +1251,20 @@ async def on_raw_reaction_add(payload):
                 await message.add_reaction('❌')
                 return
             user_mention = f'<@{payload.user_id}>'
-            new_description = embed.description
-            if user_mention not in new_description:
-                dsc_lines = new_description.rsplit("\n", 1)
+            emb_description = embed.description
+            if user_mention not in emb_description:
+                dsc_lines = emb_description.rsplit("\n", 1)
                 new_description = f'{dsc_lines[0]}\n{user_mention}\n{dsc_lines[1]}' 
             else:
-                new_description = embed.description.replace(f'\n{user_mention}', '')
+                lines = emb_description.split("\n")
+                new_description = ""
+                for line in lines:
+                    if user_mention not in line:
+                        new_description += line + "\n"
             updated_embed = embed.copy()
-            updated_embed.description = new_description
+            updated_embed.description = new_description.rstrip("\n")
             await message.edit(embed=updated_embed)
-        elif payload.emoji.name == '🗣️' and embed:
+        elif payload.emoji.name == '🗣️' and embed.title == "人狼メンバー設定":
             await message.remove_reaction(payload.emoji, member)
             if payload.message_id != main_emb_message_id:
                 embed.set_footer(text="この埋め込みは現在ACTIVEではありません\n`!act`を使ってACTIVATEするか\n新しい埋め込みを作成してください")
@@ -1278,7 +1284,7 @@ async def on_raw_reaction_add(payload):
                     updated_embed = embed.copy()
                     updated_embed.description = "\n".join(dsc_lines)
                     await message.edit(embed=updated_embed)
-        elif payload.emoji.name == '🆗' and embed:
+        elif payload.emoji.name == '🆗':
             await message.remove_reaction(payload.emoji, member)
             if payload.message_id != main_emb_message_id:
                 embed.set_footer(text="この埋め込みは現在ACTIVEではありません\n`!act`を使ってACTIVATEするか\n新しい埋め込みを作成してください")
@@ -1287,11 +1293,16 @@ async def on_raw_reaction_add(payload):
                 return
             if embed.title == "人狼メンバー設定":
                 await message.clear_reactions()
+                names = func.get_datas()
+                num = len(names)
+                dsc = ("\n").join(names)
                 embed.title = "ゲームを開始します"
+                embed.description = f"以下のメンバーで開始します\n`{dsc}`\n合計{num}人"
                 embed.color = 0x660000
                 embed.set_footer(text='VCにメンバーが集まったら🆗を押してください')
                 await message.edit(embed=embed)
                 await message.add_reaction('🆗')
+                await message.add_reaction('🛠️')
             elif embed.title == "ゲームを開始します":
                 vc = bot.get_channel(VOICE_CH_ID)
                 if vc:
@@ -1308,7 +1319,7 @@ async def on_raw_reaction_add(payload):
                     else:
                         embed.set_footer(text="VCにメンバーが集まっていません")
                         await message.edit(embed=embed)
-        elif payload.emoji.name == '✅' and embed:
+        elif payload.emoji.name == '✅':
             await message.remove_reaction(payload.emoji, member)
             if payload.message_id != main_emb_message_id:
                 embed.set_footer(text="この埋め込みは現在ACTIVEではありません\n`!act`を使ってACTIVATEするか\n新しい埋め込みを作成してください")
@@ -1321,8 +1332,11 @@ async def on_raw_reaction_add(payload):
                 await remove_death_prefix()
                 user_ids = re.findall(r'@[0-9]{18,20}', embed.description)
                 user_ids = list(map(lambda x: int(x.replace('@', '')), user_ids))
-                if len(user_ids) <= 3:
+                if len(user_ids) < 4:
                     embed.set_footer(text="人数が不足しています\nメンバーを追加してください")
+                    await message.edit(embed=embed)
+                elif len(user_ids) > 15:
+                    embed.set_footer(text="人数が多すぎます\nメンバーを減らしてください")
                     await message.edit(embed=embed)
                 else:
                     embed.set_footer(text="読み込み中です")
@@ -1339,7 +1353,12 @@ async def on_raw_reaction_add(payload):
                         member = guild.get_member(int(user_id))
                         if member:
                             user = await bot.fetch_user(user_id)
-                            display_name = member.display_name if member.display_name else user.display_name
+                            if member.display_name:
+                                display_name = member.display_name
+                                display_name = display_name.encode('cp932', 'ignore').decode('cp932')
+                                if not display_name:
+                                    display_name = user.display_name
+                                    display_name = display_name.encode('cp932', 'ignore').decode('cp932')
                             if display_name:
                                 if display_name in existing_names:
                                     embed.set_footer(text="ERROR\n名前が重複するメンバーが含まれています")
@@ -1350,7 +1369,7 @@ async def on_raw_reaction_add(payload):
                                     with open("data.csv", "a", newline="") as file:
                                         writer = csv.writer(file)
                                         writer.writerow([display_name,user_id])
-                                    dsc_lines[index] += f" -> {display_name}"
+                                    dsc_lines[index] = f"<@{user_id}> -> {display_name}"
                             else:
                                 embed.set_footer(text="ERROR\n名前が取得できないメンバーが含まれています")
                                 await message.edit(embed=embed)
@@ -1447,13 +1466,17 @@ async def on_raw_reaction_add(payload):
                 await interview_tasks(message)
             elif embed.title == "人狼はいなくなりました" or embed.title == "村人は全員人狼に食べられました":
                 await message.clear_reactions()
+                names = func.get_datas()
+                num = len(names)
+                dsc = ("\n").join(names)
                 embed.title = "ゲームを開始します"
+                embed.description = f"以下のメンバーで開始します\n`{dsc}`\n合計{num}人"
                 embed.color = 0x660000
-                embed.description = ""
                 embed.set_footer(text='VCにメンバーが集まったら🆗を押してください')
                 await message.edit(embed=embed)
                 await message.clear_reactions()
                 await message.add_reaction('🆗')
+                await message.add_reaction('🛠️')
             elif embed.title == "質疑応答が終了しました" or embed.title == "質疑応答をスキップしました":
                 await message.clear_reactions()
                 func.set_vote_data()
@@ -1576,6 +1599,69 @@ async def on_raw_reaction_add(payload):
                     await asyncio.sleep(0.3)
                 embed.set_footer(text="投票先の集計中です\nLOADINGが完了するまでお待ちください")
                 await message.edit(embed=embed)
+        elif payload.emoji.name == 'ℹ️' and embed.title == "人狼メンバー設定":
+            await message.remove_reaction(payload.emoji, member)
+            if payload.message_id != main_emb_message_id:
+                embed.set_footer(text="この埋め込みは現在ACTIVEではありません\n`!act`を使ってACTIVATEするか\n新しい埋め込みを作成してください")
+                await message.edit(embed=embed)
+                await message.add_reaction('❌')
+                return
+            user_ids = re.findall(r'@[0-9]{18,20}', embed.description)
+            if embed.fields:
+                num = embed.fields[0].name.split("(")[-1]
+                num = num.strip(")")
+                try:
+                    num = int(num)
+                except:
+                    embed.clear_fields()
+                    await message.edit(embed=embed)
+                    return
+                if num == len(user_ids):
+                    embed.clear_fields()
+                    await message.edit(embed=embed)
+                else:
+                    embed.clear_fields()
+                    ftx = func.mk_info(len(user_ids))
+                    stx = f"□ その他\n再投票: 最大{MAX_VOTE_REPEAT}回まで"
+                    if GRD_FLG == 1:
+                        stx += "\n連続ガード: なし"
+                    else:
+                        stx += "\n連続ガード: あり"
+                    embed.add_field(name=f'# 設定一覧 ({str(len(user_ids))})',
+                                    value=f'```{ftx}\n{stx}```',
+                                    inline=False)
+                    await message.edit(embed=embed)
+            else:
+                ftx = func.mk_info(len(user_ids))
+                stx = f"□ その他\n再投票: 最大{MAX_VOTE_REPEAT}回まで"
+                if GRD_FLG == 1:
+                    stx += "\n連続ガード: なし"
+                else:
+                    stx += "\n連続ガード: あり"
+                embed.add_field(name=f'# 設定一覧 ({str(len(user_ids))})',
+                                value=f'```{ftx}\n{stx}```',
+                                inline=False)
+                await message.edit(embed=embed)
+        elif payload.emoji.name == '🛠️' and embed.title == "ゲームを開始します":
+            await message.remove_reaction(payload.emoji, member)
+            if payload.message_id != main_emb_message_id:
+                embed.set_footer(text="この埋め込みは現在ACTIVEではありません\n`!act`を使ってACTIVATEするか\n新しい埋め込みを作成してください")
+                await message.edit(embed=embed)
+                await message.add_reaction('❌')
+                return
+            await message.clear_reactions()
+            ids = func.get_datas(1)
+            dsc = ""
+            for id in ids:
+                dsc += f"<@{id}>\n"
+            embed.title='人狼メンバー設定'
+            embed.description='-'*23+'\n'+ dsc + '-'*23
+            embed.set_footer(text="メンバーを設定して✅を押してください")
+            await message.edit(embed=embed)
+            await message.add_reaction('✋')
+            await message.add_reaction('🗣️')
+            await message.add_reaction('ℹ️')
+            await message.add_reaction('✅')
 
     elif isinstance(channel, discord.DMChannel):
         global user_exit_flg
@@ -1877,11 +1963,26 @@ async def on_raw_reaction_add(payload):
 @bot.command(name='jinro')
 async def create_embed_with_reaction(ctx: commands.Context):
     await ctx.message.delete()
+    global main_emb_message_id
+    if not main_emb_message_id:
+        embed = discord.Embed(title='人狼メンバー設定', color=0x660000, description='-'*23+'\n'+'-'*23)
+        embed.set_footer(text="メンバーを設定して✅を押してください")
+        message = await ctx.send(embed=embed)
+        await message.add_reaction('✋')
+        await message.add_reaction('🗣️')
+        await message.add_reaction('ℹ️')
+        await message.add_reaction('✅')
+        main_emb_message_id = message.id
+
+@bot.command(name='jinro_new')
+async def create_new_embed(ctx: commands.Context):
+    await ctx.message.delete()
     embed = discord.Embed(title='人狼メンバー設定', color=0x660000, description='-'*23+'\n'+'-'*23)
     embed.set_footer(text="メンバーを設定して✅を押してください")
     message = await ctx.send(embed=embed)
     await message.add_reaction('✋')
     await message.add_reaction('🗣️')
+    await message.add_reaction('ℹ️')
     await message.add_reaction('✅')
     global main_emb_message_id
     main_emb_message_id = message.id
@@ -1896,7 +1997,7 @@ async def ad_username(ctx: commands.Context, *names):
         embed = message.embeds[0]
         if embed:
             new_embed = embed.copy()
-            dsc_lines = new_embed.description.rstlip("\n", 1)
+            dsc_lines = new_embed.description.rsplit("\n", 1)
             names_text = "\n".join(names)
             new_embed.description = f'{dsc_lines[0]}\n{names_text}\n{dsc_lines[1]}'
             await message.edit(embed=new_embed)
@@ -1915,7 +2016,7 @@ async def rm_username(ctx: commands.Context, usermention: str):
             updated_description = ''
             deleted = False
             for line in description_lines:
-                if line.strip() != usermention:
+                if usermention not in line:
                     updated_description += line + '\n'
                 elif not deleted:
                     deleted = True
