@@ -12,13 +12,16 @@ def get_row_count(filename):
                 row_count += 1
     return row_count
 
-def get_csv_ids(csv_file):
-    ids = []
-    with open(csv_file, 'r') as file:
+def get_datas(flg=0):
+    datas = []
+    with open('data.csv', 'r') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            ids.append(row['id'])
-    return ids
+            if flg == 0:
+                datas.append(row['name'])
+            else:
+                datas.append(row['id'])
+    return datas
 
 def get_name_list(id_list):
     name_list = []
@@ -536,18 +539,32 @@ def select_random_white():
 
 def assign_roles():
     name_count = get_row_count('data.csv')
-    if name_count >= 13:
-        roles = ['人狼', '人狼', '人狼', '狂人', '騎士', '占い師', '霊媒師']
-    elif name_count <= 4:
-        roles = ['人狼', '占い師']
-    elif name_count == 5:
-        roles = ['人狼', '狂人', '騎士', '占い師']
-    elif name_count == 6:
-        roles = ['人狼', '人狼', '騎士', '占い師', '霊媒師']
-    else:
+    if 9 <= name_count <= 11:
         roles = ['人狼', '人狼', '狂人', '騎士', '占い師', '霊媒師']
+    elif 12 <= name_count <= 14:
+        roles = ['人狼', '人狼', '人狼', '狂人', '騎士', '占い師', '霊媒師']
+    elif name_count == 15:
+        roles = ['人狼', '人狼', '人狼', '狂人', '狂人', '騎士', '占い師', '霊媒師']
+    elif name_count == 8:
+        roles = ['市民', '狂人', '騎士', '占い師', '霊媒師']
+        random.shuffle(roles)
+        roles.pop()
+        roles += ['人狼']*2
+    elif name_count == 7:
+        roles = ['市民', '騎士', '占い師', '霊媒師']
+        random.shuffle(roles)
+        roles.pop()
+        roles += ['人狼']*2
+    elif 4 <= name_count <= 6:
+        roles = ['市民', '狂人', '騎士', '占い師']
+        random.shuffle(roles)
+        roles.pop()
+        roles += ['人狼']*2
+    else:
+        print("assign error")
+        return
     num_citizens = name_count - len(roles)
-    roles.extend(['市民'] * num_citizens)
+    roles += ['市民'] * num_citizens
     random.shuffle(roles)
     with open('status.csv', 'r') as file:
         reader = csv.DictReader(file)
@@ -566,3 +583,22 @@ def assign_roles():
         writer = csv.DictWriter(file, fieldnames=reader.fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+def mk_info(num):
+    if 9 <= num <= 11:
+        txt = "□ 配役\n人狼2 狂人1 占い師1 霊媒師1 騎士1 " + f"市民{num-6} \n欠け: なし"
+    elif 12 <= num <= 14:
+        txt = "□ 配役\n人狼3 狂人1 占い師1 霊媒師1 騎士1 " + f"市民{num-7} \n欠け: なし"
+    elif num == 15:
+        txt = "□ 配役\n人狼3 狂人2 占い師1 霊媒師1 騎士1 市民7 \n欠け: なし"
+    elif num == 8:
+        txt = "□ 配役\n人狼2 (狂人1) (占い師1) (霊媒師1) (騎士1) (市民1) 市民2 \n欠け: あり"
+    elif num == 7:
+        txt = "□ 配役\n人狼2 (占い師1) (霊媒師1) (騎士1) (市民1) 市民2 \n欠け: あり"
+    elif 5 <= num <= 6:
+        txt = "□ 配役\n人狼1 (狂人1) (占い師1) (騎士1) (市民1) "+ f"市民{num-4} \n欠け: あり"
+    elif num == 4:
+        txt = "□ 配役\n人狼1 (狂人1) (占い師1) (騎士1) (市民1) \n欠け: あり"
+    else:
+        txt = "□ 配役\n表示不可 "
+    return txt
