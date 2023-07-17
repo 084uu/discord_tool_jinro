@@ -124,9 +124,7 @@ def mk_vote_dsc():
         vote_ids = vote_list.strip(";").split(";")
         vote_names = get_name_list(vote_ids)
         votes = ", ".join(vote_names)
-        if vote_count == "0":
-            dsc_lines.append(f"{name} {vote_count}票")
-        else:
+        if vote_count != "0":
             dsc_lines.append(f"{name} {vote_count}票 <- [{votes}]")
     return "\n".join(dsc_lines)
 
@@ -460,7 +458,7 @@ def check_status(flg=0):
                 break
     elif flg == 3:
         for row in rows:
-            if row['vital'] == '0' and (row['grd'] == '1' or row['grd'] == '2'):
+            if row['vital'] == '0' and row['grd'] == '1':
                 checked = 1
                 break
     return checked
@@ -563,7 +561,7 @@ def assign_roles():
         roles = ['市民', '狂人', '騎士', '占い師']
         random.shuffle(roles)
         roles.pop()
-        roles += ['人狼']*2
+        roles += ['人狼']
     else:
         print("assign error")
         return
