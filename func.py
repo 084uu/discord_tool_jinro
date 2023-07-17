@@ -354,14 +354,15 @@ def reset_fortune():
         writer.writeheader()
         writer.writerows(rows)
 
-def reset_grd_flg():
+def reset_conse_grd_flg():
     rows = []
     with open('status.csv', 'r') as file:
         reader = csv.DictReader(file)
         rows = list(reader)
     for row in rows:
         if row['grd'] == '2':
-            row['grd'] = '0'
+            row['grd'] = '1'
+            break
     with open('status.csv', 'w', newline='') as file:
         fieldnames = reader.fieldnames
         writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -389,7 +390,7 @@ def select_grd_ids(user_id):
     with open('status.csv', 'r') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            if row['vital'] == '0' and row['grd'] != '2' and row['id'] != str(user_id):
+            if row['vital'] == '0' and row['id'] != str(user_id) and row['grd'] == '0':
                 selected_ids.append(row['id'])
     return selected_ids
 
@@ -450,15 +451,18 @@ def check_status(flg=0):
     if flg == 1:
         for row in rows:
             if row['vital'] == '0' and row['kil'] == '1':
-                checked += 1
+                checked = 1
+                break
     elif flg == 2:
         for row in rows:
             if row['vital'] == '0' and row['ftnd'] == '2':
-                checked += 1
+                checked = 1
+                break
     elif flg == 3:
         for row in rows:
-            if row['vital'] == '0' and row['grd'] == '1':
-                checked += 1
+            if row['vital'] == '0' and (row['grd'] == '1' or row['grd'] == '2'):
+                checked = 1
+                break
     return checked
 
 def shuffle_discussion_order():
@@ -586,19 +590,17 @@ def assign_roles():
 
 def mk_info(num):
     if 9 <= num <= 11:
-        txt = "□ 配役\n人狼2 狂人1 占い師1 霊媒師1 騎士1 " + f"市民{num-6} \n欠け: なし"
+        txt = "□ 配役\n人狼2 狂人1 占い師1 霊媒師1 騎士1 " + f"\n市民{num-6}"
     elif 12 <= num <= 14:
-        txt = "□ 配役\n人狼3 狂人1 占い師1 霊媒師1 騎士1 " + f"市民{num-7} \n欠け: なし"
+        txt = "□ 配役\n人狼3 狂人1 占い師1 霊媒師1 騎士1 " + f"\n市民{num-7}"
     elif num == 15:
-        txt = "□ 配役\n人狼3 狂人2 占い師1 霊媒師1 騎士1 市民7 \n欠け: なし"
+        txt = "□ 配役\n人狼3 狂人2 占い師1 霊媒師1 騎士1 \n市民7"
     elif num == 8:
-        txt = "□ 配役\n人狼2 (狂人1) (占い師1) (霊媒師1) (騎士1) (市民1) 市民2 \n欠け: あり"
+        txt = "□ 配役\n人狼2 狂人1* 占い師1* 霊媒師1* 騎士1* \n市民2~3 ※*欠けあり"
     elif num == 7:
-        txt = "□ 配役\n人狼2 (占い師1) (霊媒師1) (騎士1) (市民1) 市民2 \n欠け: あり"
-    elif 5 <= num <= 6:
-        txt = "□ 配役\n人狼1 (狂人1) (占い師1) (騎士1) (市民1) "+ f"市民{num-4} \n欠け: あり"
-    elif num == 4:
-        txt = "□ 配役\n人狼1 (狂人1) (占い師1) (騎士1) (市民1) \n欠け: あり"
+        txt = "□ 配役\n人狼2 占い師1* 霊媒師1* 騎士1* \n市民2~3 ※*欠けあり"
+    elif 4 <= num <= 6:
+        txt = "□ 配役\n人狼1 狂人1* 占い師1* 騎士1* "+ f"\n市民{num-4}~{num-3} ※*欠けあり"
     else:
-        txt = "□ 配役\n表示不可 "
+        txt = "□ 配役\n（4~15人まで設定可）"
     return txt
