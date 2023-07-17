@@ -100,6 +100,7 @@ async def discussion_operates(message):
     embed = message.embeds[0]
     embed.title = "会議の時間です"
     await message.edit(embed=embed)
+    await message.add_reaction('⏭️')
     await asyncio.sleep(2)
     if m_exit_flg: return
     embed.set_footer(text="◇"*5 +"\n残り時間は5分です")
@@ -153,6 +154,7 @@ async def discussion_operates(message):
     embed.set_footer(text="■"*6 +"\n残り時間は0秒です")
     await message.edit(embed=embed)
     await mute_alives()
+    await message.clear_reactions()
     embed.description = ""
     embed.set_footer(text="会議時間は終了しました")
     await message.edit(embed=embed)
@@ -189,6 +191,8 @@ async def interview_operates(message):
         embed.description = f"{index+1}人目の質問者は「{user_name}」です"
         embed.set_footer(text=f"{user_name}の応答を待機しています")
         await message.edit(embed=embed)
+        if index == 0:
+            await message.add_reaction('⏭️')
         if exit_flg: return
         if user_exit_flg:
             user_exit_flg = False
@@ -370,6 +374,7 @@ async def interview_operates(message):
             await message.edit(embed=embed)
             await asyncio.sleep(3)
             if exit_flg: return
+    await message.clear_reactions()
     embed.title = "質疑応答が終了しました"
     embed.color = 0x8B4513
     embed.description = ""
@@ -437,9 +442,10 @@ async def will_operates(message):
     embed.description = ""
     embed.set_footer(text="✅を押して進行してください")
     await message.edit(embed=embed)
-    await send_log(id=executed_id, flg=1)
     await user.send("あなたは処刑されました")
     await add_death_prefix(executed_id)
+    await add_rip_role(executed_id)
+    await send_log(id=executed_id, flg=1)
     await message.add_reaction('✅')
 
 async def will_tasks(message):
@@ -474,7 +480,7 @@ async def persuasion_operates(message):
             await asyncio.sleep(3)
             continue
         await unmute_select(pre_executed_id)
-        embed.description = f"{persuader_name}による弁明です"
+        embed.description = f"「{persuader_name}」による弁明です"
         embed.set_footer(text= "□"*6+"残り時間は1分です")
         await message.edit(embed=embed)
         await asyncio.sleep(5)
@@ -576,7 +582,7 @@ async def persuasion_operates(message):
         await message.edit(embed=embed)
         await smsg.delete()
         await mute_select(pre_executed_id)
-        embed.description = f"{persuader_name}による弁明が終わりました"
+        embed.description = f"「{persuader_name}」による弁明が終わりました"
         embed.set_footer(text= "次に移行します\nしばらくお待ちください")
         await message.edit(embed=embed)
     embed.description = "全ての弁明が終わりました"
@@ -593,8 +599,11 @@ async def persuasion_tasks(message):
 async def persuasion_skip(persuader_name, message, msg = None):
     embed = message.embeds[0]
     if msg:
-        await msg.delete()
-    embed.description = f"{persuader_name}による弁明がスキップされました"
+        try:
+            await msg.delete()
+        except:
+            pass
+    embed.description = f"「{persuader_name}」による弁明がスキップされました"
     embed.set_footer(text= "次に移行します\nしばらくお待ちください")
     await message.edit(embed=embed)
 
@@ -637,11 +646,11 @@ async def send_log(id=None, name=None, vtx=None, flg=0):
     guild = bot.get_guild(GUILD_ID)
     channel = discord.utils.get(guild.text_channels, id=LOG_CH_ID)
     if vtx:
-        log = f"投票結果\n```{vtx}```"
+        log = f"□ 投票結果\n{vtx}"
         await channel.send(log)
     elif flg == 0:
         if day == 0:
-            log = "ゲーム開始\n...\n村民名簿\n>>> "
+            log = "## === ゲーム開始 ===\n>>> "
             with open('data.csv', 'r', newline='') as file:
                 reader = csv.DictReader(file)
                 rows = list(reader)
@@ -650,22 +659,38 @@ async def send_log(id=None, name=None, vtx=None, flg=0):
             await channel.send(log.rstrip("\n"))
             day += 1
         else:
-            await channel.send(f"□ {day}日目の朝を迎えた")
+            await channel.send(f"## {day}日目")
             day += 1
     elif flg == 1:
         if id:
             name = func.get_name_by_id(str(id))
-            await channel.send(f"`「{name}」を処刑した`")
+            await channel.send(f"■ 処刑\n`「{name}」を処刑した`")
     elif flg == 2:
         if name:
-            await channel.send(f"`「{name}」が殺された`")
+            await channel.send(f"■ 犠牲\n`「{name}」が殺された`")
         else:
-            await channel.send("`昨夜は誰も殺されなかった`")
+            await channel.send("...昨夜は誰も殺されなかった")
+        if day > 2:
+            ids = func.get_alives_ids()
+            alives = func.get_name_list(ids)
+            alives_txt = ("\n").join(alives)
+            await channel.send(f"□ 生存者\n>>> {alives_txt}")
     elif flg == 3:
-        await channel.send("人狼はいなくなった\n...\nゲーム終了")
+        await channel.send(f"...人狼はいなくなった\n## === ゲーム終了 ===")
+        result = ""
+        names, jobs = func.get_name_and_job_lists()
+        for name, job in zip(names, jobs):
+            result += f"{name} {job}\n"
+        result = result.rstrip("\n")
+        await channel.send(f"```{result}```")
     elif flg == 4:
-        await channel.send("村人はいなくなった\n...\nゲーム終了")
-
+        await channel.send(f"...全員人狼に食べられた\n## === ゲーム終了 ===")
+        result = ""
+        names, jobs = func.get_name_and_job_lists()
+        for name, job in zip(names, jobs):
+            result += f"{name} {job}\n"
+        result = result.rstrip("\n")
+        await channel.send(f"```{result}```")
 
 #### DM ####
 async def send_select_executed(user_id): # 処刑対象に投票してください
@@ -749,7 +774,7 @@ async def clean_persuasion_dm(ids):
             async for msg in dm_channel.history(limit=10):
                 if msg.author != bot.user:
                     continue
-                if msg.content.startswith("あなたの弁明") or msg.content.startswith("弁明をスキップ") or msg.content.startswith("処刑対象の候補に"):
+                if msg.content.startswith("あなたの弁明の") or msg.content.startswith("弁明をスキップ") or msg.content.startswith("処刑対象の候補に"):
                     await msg.delete()
 
 async def clean_will_dm(user_id):
@@ -899,13 +924,13 @@ async def send_guard_operates(): # 保護する対象を選んでください
             for index in range(len(grd_alives_names)):
                 await sent_message.add_reaction(REACTION_EMOJIS_A[index])
 
-async def send_citizen_operates():
+async def send_others_operates():
     user_ids = []
     with open('status.csv', 'r') as file:
         reader = csv.DictReader(file)
         rows = list(reader)
         for row in rows:
-            if row['job'] == '市民' and row['vital'] == '0':
+            if row['vital'] == '0' and (row['job'] == '市民' or row['job'] == '狂人'):
                 user_ids.append(row['id'])
     for user_id in user_ids:
         user = await bot.fetch_user(user_id)
@@ -934,26 +959,9 @@ async def send_fortune_result(id_number, user_id): # 占いの結果
         else:
             await user.send(f"占いの結果、「{fortune_name}」は「白」でした")
 
-async def send_guardian_result():
-    user_id = None
-    grd_flg = False
-    with open('status.csv', 'r') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            if (row['grd'] == '1' and row['kil'] == '1') or (row['grd'] == '2' and row['kil'] == '1'):
-                grd_flg = True
-                break
-        for row in reader:
-            if row['job'] == '騎士':
-                user_id = row['id']
-                break
-    if grd_flg and user_id:
-        user = await bot.fetch_user(user_id)
-        if user:
-            await user.send("あなたの功績により村人が1人救われました")
-
 async def send_werewolf_messages():
     werewolf_ids = func.get_alivewolfs_ids()
+    wolfnames_text = None
     if len(werewolf_ids) >= 2:
         await add_wolf_room()
         guild = bot.get_guild(GUILD_ID)
@@ -963,21 +971,21 @@ async def send_werewolf_messages():
             await asyncio.sleep(0.5)
         await channel.send(">>> 人狼部屋にようこそ\n人狼が複数いる夜はこの部屋が開放され、\nこちらに襲撃先の案内が送られます\n"
                             +"襲撃先は人狼全員で選択してください\nここから下が今回の人狼チャットです")
-    werewolf_names = func.get_name_list(werewolf_ids)
-    if werewolf_names:
+        werewolf_names = func.get_name_list(werewolf_ids)
         wolfnames_text = ", ".join(werewolf_names)
-        for user_id in werewolf_ids:
-            user = await bot.fetch_user(user_id)
-            if user:
-                message = "あなたは人狼です"
-                file_name = "image/werewolf.jpg"
-                file = discord.File(file_name, filename=file_name)
-                await user.send(message, file=file)                
+    for user_id in werewolf_ids:
+        user = await bot.fetch_user(user_id)
+        if user:
+            message = "あなたは人狼です"
+            file_name = "image/werewolf.jpg"
+            file = discord.File(file_name, filename=file_name)
+            await user.send(message, file=file)                
+            if wolfnames_text:
                 await user.send(f"人狼は{wolfnames_text}です\n<#{WLF_CH_ID}>")
-                await asyncio.sleep(1)
-                sent_msg = await user.send("準備ができたら🆗をおしてください")
-                await sent_msg.add_reaction("🆗")
-                await asyncio.sleep(1)
+            await asyncio.sleep(1)
+            sent_msg = await user.send("準備ができたら🆗をおしてください")
+            await sent_msg.add_reaction("🆗")
+            await asyncio.sleep(1)
 
 async def send_citizen_messages():
     user_ids = []
@@ -1086,10 +1094,15 @@ async def check_killed_victim():
                 if row['kil'] == '1' and row['grd'] == '0':
                     killed_id = row['id']
                     row['vital'] = '1'
-                elif row['kil'] == '1' and (row['grd'] == '1' or row['grd'] == '2'):
+                elif row['kil'] == '1':
                     grd_flg = True
                 elif row['job'] == '人狼':
                     alive_wolf_ids.append(row['id'])
+        if grd_flg:
+            grd_id = None
+            for row in rows:
+                if row['vital'] == '0' and row['job'] == '騎士':
+                    grd_id = row['id']
     with open('status.csv', 'w', newline='') as file:
         fieldnames = reader.fieldnames
         writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -1101,19 +1114,27 @@ async def check_killed_victim():
         await add_death_prefix(killed_id)
         await add_rip_role(killed_id)
         killed_name = func.get_name_by_id(killed_id)
-        for alive_wolf_id in alive_wolf_ids:
+        if len(alive_wolf_ids) >= 2:
+            guild = bot.get_guild(GUILD_ID)
+            channel = discord.utils.get(guild.text_channels, id=WLF_CH_ID)
+            await channel.send(f"「{killed_name}」の襲撃に成功しました")
+        elif alive_wolf_ids:
+            alive_wolf_id = alive_wolf_ids[0]
             live_wolf = await bot.fetch_user(alive_wolf_id)
-            await live_wolf.send(f"「{killed_name}」の襲撃に成功しました")
         return killed_name
     elif grd_flg:
+        grd = await bot.fetch_user(grd_id)
+        await grd.send("あなたの功績により村人が1人救われました")
         if len(alive_wolf_ids) >= 2:
             guild = bot.get_guild(GUILD_ID)
             channel = discord.utils.get(guild.text_channels, id=WLF_CH_ID)
             await channel.send("襲撃に失敗しました")
         else:
             alive_wolf_id = alive_wolf_ids[0]
-            live_wolf = await bot.fetch_user(alive_wolf_id)
-            await live_wolf.send("襲撃に失敗しました")
+            alive_wolf = await bot.fetch_user(alive_wolf_id)
+            await alive_wolf.send("襲撃に失敗しました")
+        
+
         return None
     return None
 
@@ -1259,87 +1280,7 @@ async def on_raw_reaction_add(payload):
                         await target_message.add_reaction('✅')
             elif payload.emoji.name == '❌':
                 await message.delete()
-        elif payload.emoji.name == '✋' and embed.title == "人狼メンバー設定":
-            await message.remove_reaction(payload.emoji, member)
-            if payload.message_id != main_emb_message_id:
-                await message.clear_reactions()
-                embed.set_footer(text="この埋め込みは現在ACTIVEではありません\n新しい埋め込みを作成してください")
-                await message.edit(embed=embed)
-                await message.add_reaction('❌')
-                return
-            user_mention = f'<@{payload.user_id}>'
-            emb_description = embed.description
-            if user_mention not in emb_description:
-                dsc_lines = emb_description.rsplit("\n", 1)
-                new_description = f'{dsc_lines[0]}\n{user_mention}\n{dsc_lines[1]}' 
-            else:
-                lines = emb_description.split("\n")
-                new_description = ""
-                for line in lines:
-                    if user_mention not in line:
-                        new_description += line + "\n"
-            updated_embed = embed.copy()
-            updated_embed.description = new_description.rstrip("\n")
-            await message.edit(embed=updated_embed)
-        elif payload.emoji.name == '🗣️' and embed.title == "人狼メンバー設定":
-            await message.remove_reaction(payload.emoji, member)
-            if payload.message_id != main_emb_message_id:
-                await message.clear_reactions()
-                embed.set_footer(text="この埋め込みは現在ACTIVEではありません\n新しい埋め込みを作成してください")
-                await message.edit(embed=embed)
-                await message.add_reaction('❌')
-                return
-            vc = await bot.fetch_channel(VOICE_CH_ID)
-            if vc:
-                member_ids = [member.id for member in vc.members]
-                if member_ids:
-                    new_description = embed.description
-                    dsc_lines = new_description.rsplit("\n", 1)
-                    for member_id in member_ids:
-                        user_mention = f'<@{member_id}>'
-                        if user_mention not in dsc_lines[0]:
-                            dsc_lines[0] += f'\n{user_mention}'
-                    updated_embed = embed.copy()
-                    updated_embed.description = "\n".join(dsc_lines)
-                    await message.edit(embed=updated_embed)
-        elif payload.emoji.name == '🆗':
-            await message.remove_reaction(payload.emoji, member)
-            if payload.message_id != main_emb_message_id:
-                await message.clear_reactions()
-                embed.set_footer(text="この埋め込みは現在ACTIVEではありません\n新しい埋め込みを作成してください")
-                await message.edit(embed=embed)
-                await message.add_reaction('❌')
-                return
-            if embed.title == "人狼メンバー設定":
-                await message.clear_reactions()
-                names = func.get_datas()
-                num = len(names)
-                dsc = ("\n").join(names)
-                if embed.fields:
-                    embed.clear_fields()
-                embed.title = "ゲームを開始します"
-                embed.description = f"以下の{num}人で開始します\n`{dsc}`"
-                embed.color = 0x660000
-                embed.set_footer(text='VCにメンバーが集まったら🆗を押してください')
-                await message.edit(embed=embed)
-                await message.add_reaction('🆗')
-                await message.add_reaction('🛠️')
-            elif embed.title == "ゲームを開始します":
-                vc = bot.get_channel(VOICE_CH_ID)
-                if vc:
-                    member_ids = {member.id for member in vc.members}
-                    with open('data.csv', 'r', newline='') as file:
-                        reader = csv.DictReader(file)
-                        csv_ids = {int(row['id']) for row in reader}
-                    if csv_ids.issubset(member_ids):
-                        await message.clear_reactions()
-                        embed.description = ""
-                        embed.set_footer(text="✅を押すと役職が配られます")
-                        await message.edit(embed=embed)
-                        await message.add_reaction('✅')
-                    else:
-                        embed.set_footer(text="VCにメンバーが集まっていません")
-                        await message.edit(embed=embed)
+
         elif payload.emoji.name == '✅':
             await message.remove_reaction(payload.emoji, member)
             if payload.message_id != main_emb_message_id:
@@ -1442,33 +1383,40 @@ async def on_raw_reaction_add(payload):
                 await remove_all_werewolf_room()
                 flg_game = func.check_game_status()
                 if flg_game == 2:
+                    await send_log(flg=2)
                     names, jobs = func.get_name_and_job_lists()
-                    embed.title = "人狼はいなくなりました"
-                    embed.description = "村人陣営の勝利です\n"+"-"*23
+                    dsc_txt = "村人陣営の勝利です\n"+"-"*23
                     for name, job in zip(names, jobs):
-                        embed.description += f"\n{name} {job}"
-                    await send_log(flg=3)
+                        dsc_txt += f"\n{name} {job}"
+                    dsc_txt += "\n"+"-"*23
+                    embed.title = "人狼はいなくなりました"
+                    embed.description = dsc_txt
                     embed.set_footer(text="同じメンバーで次のゲームを始める場合は✅を押してください")
                     await message.edit(embed=embed)
                     await unmute_all()
                     await remove_all_rip_role()
                     await remove_death_prefix()
+                    await send_log(flg=3)
                     await message.add_reaction('✅')
                     await message.add_reaction('🛠️')
                 elif flg_game == 1:
+                    if killed_name:
+                        await send_log(name=killed_name, flg=2)
                     names, jobs = func.get_name_and_job_lists()
-                    embed.title = "村人は全員人狼に食べられました"
-                    embed.description = "人外陣営の勝利です\n"+"-"*23
+                    dsc_txt = "人外陣営の勝利です\n"+"-"*23
                     for name, job in zip(names, jobs):
-                        embed.description += f"\n{name} {job}"
+                        dsc_txt += f"\n{name} {job}"
+                    dsc_txt += "\n"+"-"*23
+                    embed.title = "村人は全員人狼に食べられました"
+                    embed.description = dsc_txt
                     embed.color = 0x660000
-                    await send_log(flg=4)
                     embed.set_footer(text="同じメンバーで次のゲームを始める場合は✅を押してください")
                     await message.edit(embed=embed)
                     await unmute_all()
                     await remove_all_werewolf_room()
                     await remove_all_rip_role()
                     await remove_death_prefix()
+                    await send_log(flg=4)
                     await message.add_reaction('✅')
                     await message.add_reaction('🛠️')
                 elif flg_game == 0:
@@ -1477,12 +1425,10 @@ async def on_raw_reaction_add(payload):
                         embed.description = f"「{killed_name}」が無残な姿で発見されました\n\n生存者は{alives_count}人です"
                         await send_log(name=killed_name, flg=2)
                     else:
-                        await send_guardian_result()
                         await send_log(flg=2)
                         embed.description = f"昨夜の犠牲者はいませんでした\n\n生存者は{alives_count}人です"
                     embed.set_footer(text="会議を始めてください\nまもなくミュートが外れます")
                     await message.edit(embed=embed)
-                    await asyncio.sleep(1)
                     await unmute_alives()
                     await discussion_tasks(message)
             elif embed.title == "会議の時間です" or embed.title == "朝の会議をスキップしました":
@@ -1546,20 +1492,20 @@ async def on_raw_reaction_add(payload):
                 else:
                     if len(pre_executed_ids) >= 2 and remain_vote_repeat == 0:
                         embed.title = "最多得票者が同率でした"
-                        embed.description = "1人がランダムで選ばれ処刑されます"
-                        embed.set_footer(text="しばらくお待ちください")
+                        embed.description = f"投票結果\n{vote_dsc}"
+                        embed.set_footer(text="1人がランダムで選ばれ処刑されます\nしばらくお待ちください")
                         await message.edit(embed=embed)
                         random.shuffle(pre_executed_ids)
                         await asyncio.sleep(3)
                     executed_id = pre_executed_ids[0]
                     func.update_status(executed_id, 5)
+                    remain_vote_repeat = MAX_VOTE_REPEAT
                     exer = await bot.fetch_user(executed_id)
                     await exer.send("あなたは処刑される事となりました\n遺言を残してください")
-                    remain_vote_repeat = MAX_VOTE_REPEAT
                     exer_name = func.get_name_by_id(executed_id)
                     embed.title = "処刑対象が決定しました"
                     embed.color = 0x8B4513
-                    embed.description = f"投票結果\n{vote_dsc}\n \n{exer_name}が処刑されることになりました\n遺言の時間に移ります"
+                    embed.description = f"投票結果\n{vote_dsc}\n \n「{exer_name}」が処刑されることになりました\n遺言の時間に移ります"
                     embed.set_footer(text="✅を押して進行してください")
                     await message.edit(embed=embed)
                     await send_log(vtx=vote_dsc)
@@ -1570,39 +1516,75 @@ async def on_raw_reaction_add(payload):
                 await will_tasks(message)
             elif embed.title == "処刑が執行されました" or embed.title == "遺言がスキップされ処刑が執行されました":
                 await message.clear_reactions()
-                embed.title = "おそろしい夜がやってきました"
-                embed.color = 0xFF0000
-                embed.description = "夜の行動を選択中です"
-                embed.set_footer(text="朝を迎えるまでしばらくお待ちください")
-                await message.edit(embed=embed)
-                await add_wolf_room()
-                func.reset_check_column()
-                func.reset_flg_status()
-                await asyncio.sleep(1)
-                if NIGHT_AUTO_FLG == 0:
-                    await send_shaman_operates()
-                    await asyncio.sleep(0.5)
-                    check_count = func.update_check_count_other()
-                    alives_count = func.count_alives()
-                    if check_count == alives_count:
-                        embed.set_footer(text="✅を押して進行してください")
-                        await message.edit(embed=embed)
+                flg_game = func.check_game_status()
+                if flg_game == 2:
+                    names, jobs = func.get_name_and_job_lists()
+                    dsc_txt = "村人陣営の勝利です\n"+"-"*23
+                    for name, job in zip(names, jobs):
+                        dsc_txt += f"\n{name} {job}"
+                    dsc_txt += "\n"+"-"*23
+                    embed.title = "人狼はいなくなりました"
+                    embed.description = dsc_txt
+                    embed.set_footer(text="同じメンバーで次のゲームを始める場合は✅を押してください")
+                    await message.edit(embed=embed)
+                    await unmute_all()
+                    await remove_all_rip_role()
+                    await remove_death_prefix()
+                    await send_log(flg=3)
+                    await message.add_reaction('✅')
+                    await message.add_reaction('🛠️')
+                elif flg_game == 1:
+                    names, jobs = func.get_name_and_job_lists()
+                    dsc_txt = "人外陣営の勝利です\n"+"-"*23
+                    for name, job in zip(names, jobs):
+                        dsc_txt += f"\n{name} {job}"
+                    dsc_txt += "\n"+"-"*23
+                    embed.title = "村人は全員人狼に食べられました"
+                    embed.description = dsc_txt
+                    embed.color = 0x660000
+                    embed.set_footer(text="同じメンバーで次のゲームを始める場合は✅を押してください")
+                    await message.edit(embed=embed)
+                    await unmute_all()
+                    await remove_all_werewolf_room()
+                    await remove_all_rip_role()
+                    await remove_death_prefix()
+                    await send_log(flg=4)
+                    await message.add_reaction('✅')
+                    await message.add_reaction('🛠️')
+                elif flg_game == 0:
+                    embed.title = "おそろしい夜がやってきました"
+                    embed.color = 0xFF0000
+                    embed.description = "夜の行動を選択中です"
+                    embed.set_footer(text="朝を迎えるまでしばらくお待ちください")
+                    await message.edit(embed=embed)
+                    await add_wolf_room()
+                    func.reset_check_column()
+                    func.reset_flg_status()
+                    await asyncio.sleep(1)
+                    if NIGHT_AUTO_FLG == 0:
+                        await send_shaman_operates()
+                        await asyncio.sleep(0.5)
+                        check_count = func.update_check_count_other()
+                        alives_count = func.count_alives()
+                        if check_count == alives_count:
+                            embed.set_footer(text="✅を押して進行してください")
+                            await message.edit(embed=embed)
+                        else:
+                            await send_werewolf_operates()
+                            await asyncio.sleep(0.5)
+                            await send_fortune_operates()
+                            await asyncio.sleep(0.5)
+                            await send_guard_operates()
                     else:
                         await send_werewolf_operates()
                         await asyncio.sleep(0.5)
                         await send_fortune_operates()
                         await asyncio.sleep(0.5)
                         await send_guard_operates()
-                else:
-                    await send_werewolf_operates()
-                    await asyncio.sleep(0.5)
-                    await send_fortune_operates()
-                    await asyncio.sleep(0.5)
-                    await send_guard_operates()
-                    await asyncio.sleep(0.5)
-                    await send_shaman_operates()
-                    await asyncio.sleep(0.5)
-                    await send_citizen_operates()
+                        await asyncio.sleep(0.5)
+                        await send_shaman_operates()
+                        await asyncio.sleep(0.5)
+                        await send_others_operates()
             elif embed.title.startswith("弁明"):
                 await message.clear_reactions()
                 alives_count = func.count_alives()
@@ -1634,6 +1616,7 @@ async def on_raw_reaction_add(payload):
                     await asyncio.sleep(0.3)
                 embed.set_footer(text="投票先の集計中です\nLOADINGが完了するまでお待ちください")
                 await message.edit(embed=embed)
+
         elif payload.emoji.name == 'ℹ️' and embed.title == "人狼メンバー設定":
             await message.remove_reaction(payload.emoji, member)
             if payload.message_id != main_emb_message_id:
@@ -1678,6 +1661,109 @@ async def on_raw_reaction_add(payload):
                                 value=f'```{ftx}\n{stx}```',
                                 inline=False)
                 await message.edit(embed=embed)
+        elif payload.emoji.name == '✋' and embed.title == "人狼メンバー設定":
+            await message.remove_reaction(payload.emoji, member)
+            if payload.message_id != main_emb_message_id:
+                await message.clear_reactions()
+                embed.set_footer(text="この埋め込みは現在ACTIVEではありません\n新しい埋め込みを作成してください")
+                await message.edit(embed=embed)
+                await message.add_reaction('❌')
+                return
+            user_mention = f'<@{payload.user_id}>'
+            emb_description = embed.description
+            if user_mention not in emb_description:
+                dsc_lines = emb_description.rsplit("\n", 1)
+                new_description = f'{dsc_lines[0]}\n{user_mention}\n{dsc_lines[1]}' 
+            else:
+                lines = emb_description.split("\n")
+                new_description = ""
+                for line in lines:
+                    if user_mention not in line:
+                        new_description += line + "\n"
+            updated_embed = embed.copy()
+            updated_embed.description = new_description.rstrip("\n")
+            await message.edit(embed=updated_embed)
+        elif payload.emoji.name == '🆗':
+            await message.remove_reaction(payload.emoji, member)
+            if payload.message_id != main_emb_message_id:
+                await message.clear_reactions()
+                embed.set_footer(text="この埋め込みは現在ACTIVEではありません\n新しい埋め込みを作成してください")
+                await message.edit(embed=embed)
+                await message.add_reaction('❌')
+                return
+            if embed.title == "人狼メンバー設定":
+                await message.clear_reactions()
+                names = func.get_datas()
+                num = len(names)
+                dsc = ("\n").join(names)
+                if embed.fields:
+                    embed.clear_fields()
+                embed.title = "ゲームを開始します"
+                embed.description = f"以下の{num}人で開始します\n`{dsc}`"
+                embed.color = 0x660000
+                embed.set_footer(text='VCにメンバーが集まったら🆗を押してください')
+                await message.edit(embed=embed)
+                await message.add_reaction('🆗')
+                await message.add_reaction('🛠️')
+            elif embed.title == "ゲームを開始します":
+                vc = bot.get_channel(VOICE_CH_ID)
+                if vc:
+                    member_ids = {member.id for member in vc.members}
+                    with open('data.csv', 'r', newline='') as file:
+                        reader = csv.DictReader(file)
+                        csv_ids = {int(row['id']) for row in reader}
+                    if csv_ids.issubset(member_ids):
+                        await message.clear_reactions()
+                        embed.description = ""
+                        embed.set_footer(text="✅を押すと役職が配られます")
+                        await message.edit(embed=embed)
+                        await message.add_reaction('✅')
+                    else:
+                        embed.set_footer(text="VCにメンバーが集まっていません")
+                        await message.edit(embed=embed)
+        elif payload.emoji.name == '⏭️':
+            await message.clear_reactions()
+            await task_kill()
+            if payload.message_id != main_emb_message_id:
+                await message.clear_reactions()
+                embed.set_footer(text="この埋め込みは現在ACTIVEではありません\n新しい埋め込みを作成してください")
+                await message.edit(embed=embed)
+                await message.add_reaction('❌')
+                return
+            if embed.title.startswith("会議の時間です"):
+                global m_exit_flg
+                m_exit_flg = True
+                embed.title = "朝の会議をスキップしました"
+                embed.description = ""
+                embed.set_footer(text="✅を押して進行してください")
+                await message.edit(embed=embed)
+                await mute_alives()
+                await message.add_reaction('✅')
+            elif embed.title.startswith("質疑応答の時間です"):          
+                if "人目の質問者は" in embed.description:
+                    user_name = embed.description.split("人目の質問者は「")[-1].rstrip("」です")
+                    user_id = func.get_id_by_name(user_name)
+                    if user_id:
+                        await clean_select_to_dm(user_id)
+                        await clean_skip_inter_dm(user_id)
+                        await clean_rand_to_dm(user_id)
+                elif "に質問です" in embed.description:
+                    user_name = embed.description.split("」から「")[0].lstrip("「")
+                    user_id = func.get_id_by_name(user_name)
+                    if user_id:
+                        await clean_select_to_dm(user_id)
+                        await clean_skip_inter_dm(user_id)
+                        await clean_rand_to_dm(user_id)
+                    to_name = embed.description.split("」から「")[-1].rstrip("」に質問です")
+                    to_id = func.get_id_by_name(to_name)
+                    if to_id:
+                        await clean_select_to_dm(to_id)
+                embed.title = "質疑応答をスキップしました"
+                embed.description = ""
+                embed.set_footer(text="✅を押して進行してください")
+                await message.edit(embed=embed)
+                await mute_alives()
+                await message.add_reaction('✅')
         elif payload.emoji.name == '🛠️' and embed.title == "ゲームを開始します":
             await message.remove_reaction(payload.emoji, member)
             if payload.message_id != main_emb_message_id:
@@ -1720,7 +1806,28 @@ async def on_raw_reaction_add(payload):
             await message.add_reaction('🗣️')
             await message.add_reaction('ℹ️')
             await message.add_reaction('✅')
-
+        elif payload.emoji.name == '🗣️' and embed.title == "人狼メンバー設定":
+            await message.remove_reaction(payload.emoji, member)
+            if payload.message_id != main_emb_message_id:
+                await message.clear_reactions()
+                embed.set_footer(text="この埋め込みは現在ACTIVEではありません\n新しい埋め込みを作成してください")
+                await message.edit(embed=embed)
+                await message.add_reaction('❌')
+                return
+            vc = await bot.fetch_channel(VOICE_CH_ID)
+            if vc:
+                member_ids = [member.id for member in vc.members]
+                if member_ids:
+                    new_description = embed.description
+                    dsc_lines = new_description.rsplit("\n", 1)
+                    for member_id in member_ids:
+                        user_mention = f'<@{member_id}>'
+                        if user_mention not in dsc_lines[0]:
+                            dsc_lines[0] += f'\n{user_mention}'
+                    updated_embed = embed.copy()
+                    updated_embed.description = "\n".join(dsc_lines)
+                    await message.edit(embed=updated_embed)
+        
     elif isinstance(channel, discord.DMChannel):
         global user_exit_flg
         user = await bot.fetch_user(payload.user_id)
@@ -1748,13 +1855,13 @@ async def on_raw_reaction_add(payload):
                 target_message = await channel.fetch_message(main_emb_message_id)
                 target_embed = target_message.embeds[0]
                 if target_embed:
-                    alives_count = func.count_alives()
                     check_count = func.update_check_count(payload)
+                    alives_count = func.count_alives()
                     if check_count == alives_count:
-                            new_embed = target_embed.copy()
-                            new_embed.set_footer(text="✅を押して進行してください")
-                            await target_message.edit(embed=new_embed)
-                            await target_message.add_reaction('✅')
+                        new_embed = target_embed.copy()
+                        new_embed.set_footer(text="✅を押して進行してください")
+                        await target_message.edit(embed=new_embed)
+                        await target_message.add_reaction('✅')
 
         elif payload.emoji.name == '⏭️' and message.content.startswith("質問をスキップする場合は"):
             await message.delete()
@@ -1776,17 +1883,21 @@ async def on_raw_reaction_add(payload):
                 await clean_select_to_dm(to_id)
             msg = await user.send("あなたの質問の時間がスキップされました")
             await asyncio.sleep(5)
-            if msg:
+            try:
                 await msg.delete()
+            except:
+                pass
         elif payload.emoji.name == '⏭️' and message.content.startswith("弁明をスキップする場合は"):
             await message.delete()
             user_exit_flg = True
-            msg = await user.send("あなたの弁明がスキップされます")
             await mute_select(payload.user_id)
             await clean_persuasion_dm([payload.user_id])
+            msg = await user.send("あなたの弁明がスキップされました")
             await asyncio.sleep(5)
-            if msg:
+            try:
                 await msg.delete()
+            except:
+                pass
         elif payload.emoji.name == '⏭️' and message.content.startswith("遺言をスキップする場合は"):
             await message.delete()
             await task_kill()
@@ -1795,7 +1906,7 @@ async def on_raw_reaction_add(payload):
             target_message = await channel.fetch_message(main_emb_message_id)
             target_embed = target_message.embeds[0]
             await clean_will_dm(payload.user_id)
-            msg = await user.send("遺言がスキップされ処刑が執行されました")
+            await user.send("遺言がスキップされ処刑が執行されました")
             await add_death_prefix(payload.user_id)
             await add_rip_role(payload.user_id)
             await send_log(id=payload.user_id, flg=1)
@@ -1805,10 +1916,6 @@ async def on_raw_reaction_add(payload):
             target_embed.set_footer(text="✅を押して進行してください")
             await target_message.edit(embed=target_embed)
             await target_message.add_reaction('✅')
-            await asyncio.sleep(5)
-            if msg:
-                await msg.delete()
-        
         elif message.content.startswith("処刑対象に投票してください"): # 以下のユーザーに投票します
             user = await bot.fetch_user(payload.user_id)
             messages = message.content.split("\n")
@@ -2000,6 +2107,8 @@ async def on_raw_reaction_add(payload):
                 else:
                     if GRD_FLG == 1:
                         func.reset_conse_grd_flg()
+                    user = await bot.fetch_user(payload.user_id)
+                    await user.send(f"「{target_name}」を守りました")
                     target_id = func.get_id_by_name(target_name)
                     func.update_status(target_id, 3+GRD_FLG)
                     alives_count = func.count_alives()
@@ -2211,6 +2320,7 @@ async def skip_to_next(ctx: commands.Context):
     if main_emb_message_id:
         channel = await bot.fetch_channel(TXT_CH_ID)
         message = await channel.fetch_message(main_emb_message_id)
+        await message.clear_reactions()
         embed = message.embeds[0]
         if embed.title.startswith("会議の時間です"):
             global m_exit_flg
@@ -2221,7 +2331,7 @@ async def skip_to_next(ctx: commands.Context):
             await message.edit(embed=embed)
             await mute_alives()
             await message.add_reaction('✅')
-        elif embed.title.startswith("質疑応答の時間です"):          
+        elif embed.title.startswith("質疑応答の時間です"):
             if "人目の質問者は" in embed.description:
                 user_name = embed.description.split("人目の質問者は「")[-1].rstrip("」です")
                 user_id = func.get_id_by_name(user_name)
@@ -2247,11 +2357,11 @@ async def skip_to_next(ctx: commands.Context):
             await mute_alives()
             await message.add_reaction('✅')
         elif embed.title.startswith("遺言の時間"):
-            await message.clear_reactions()
             executed_name = embed.description.split("が処刑される")[0].split("\n")[-1]
             executed_id = func.get_id_by_name(executed_name)
-            user = await bot.fetch_user(executed_id)
+            await mute_select(executed_id)
             await clean_will_dm(executed_id)
+            user = await bot.fetch_user(executed_id)
             await user.send("あなたは処刑されました")
             await add_death_prefix(executed_id)
             await add_rip_role(executed_id)
@@ -2261,10 +2371,8 @@ async def skip_to_next(ctx: commands.Context):
             embed.description = ""
             embed.set_footer(text="✅を押して進行してください")
             await message.edit(embed=embed)
-            await mute_select(executed_id)
             await message.add_reaction('✅')
         elif embed.title.startswith("弁明の時間です"):
-            await message.clear_reactions()
             prexer_ids = func.get_vote_max_ids()
             func.set_vote_data(2)
             func.reset_check_column()
@@ -2307,6 +2415,28 @@ async def reload_env(ctx: commands.Context, v: int = -1, g: int = -1, n: int = -
         GRD_FLG = g
     if 0 <= n <= 1:
         NIGHT_AUTO_FLG = n
+
+@bot.command(name='check')
+async def en_checked(ctx: commands.Context):
+    await ctx.message.delete()
+    alives_ids = func.get_alives_ids()
+    rows = []
+    with open('check.csv', 'r', newline='') as file:
+        reader = csv.DictReader(file)
+        rows = list(reader)
+    for row in rows:
+        if row['id'] in alives_ids and row['check'] == '0':
+            row['check'] = '1'
+    with open('check.csv', 'w', newline='') as file:
+        fieldnames = reader.fieldnames
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+    global main_emb_message_id
+    if main_emb_message_id:
+        channel = await bot.fetch_channel(TXT_CH_ID)
+        message = await channel.fetch_message(main_emb_message_id)
+        await message.add_reaction('✅')
 
 @bot.command(name='rip')
 async def ad_rip_role_send_ch(ctx: commands.Context, usermention: str):
